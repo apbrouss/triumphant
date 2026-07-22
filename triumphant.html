@@ -1,0 +1,2844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triumphant v0.1</title>
+<style>
+  :root{
+    --bg: #080b12;
+    --panel: #212e44;
+    --panel-edge: #34456b;
+    --panel-edge-soft: #283552;
+    --green: #3d8adc;
+    --green-dim: #234d7a;
+    --text: #cfe0e8;
+    --text-dim: #6f838f;
+    --amber: #e8b464;
+    --red: #ff5f56;
+    --key: #7ec4ff;
+    --str: #a8e6a1;
+    --num: #e8b464;
+    --bool: #ff9d7a;
+    --null: #6f838f;
+    --font: ui-monospace, "Cascadia Code", "JetBrains Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+
+    --badge-expr: #7ec4ff;
+    --badge-var: #a8e6a1;
+    --badge-static: #e8b464;
+    --badge-cat: #c99bff;
+    --badge-sub: #6f838f;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(61,138,220,0.08), transparent),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 32px 16px;
+  }
+
+  .crt{
+    width: 100%;
+    max-width: 980px;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px rgba(61,138,220,0.03), 0 30px 60px -20px rgba(0,0,0,0.7), 0 0 80px -40px rgba(61,138,220,0.15);
+    overflow: hidden;
+  }
+
+  .titlebar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding: 10px 14px;
+    background: linear-gradient(#151d30, #0f1628);
+    border-bottom: 1px solid var(--panel-edge);
+  }
+  .titlebar .path{
+    margin-left: 0;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+  }
+  .titlebar .path b{ color: var(--text); font-weight: 600; font-size: 13.5px; }
+  .version-badge{
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--green);
+    background: rgba(61,138,220,0.15);
+    border: 1px solid rgba(61,138,220,0.35);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-right: 4px;
+    vertical-align: 1px;
+  }
+
+  .body{ padding: 22px 24px 26px; }
+
+  .lede{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin: 0 0 18px;
+    line-height: 1.5;
+  }
+  .lede .prompt{ color: var(--green); }
+
+  .dropzone{
+    position: relative;
+    border: 1px dashed var(--panel-edge);
+    border-radius: 8px;
+    min-height: 110px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    padding: 20px;
+    background: repeating-linear-gradient(0deg, rgba(61,138,220,0.015) 0px, rgba(61,138,220,0.015) 1px, transparent 1px, transparent 3px);
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    cursor: text;
+  }
+  .dropzone:focus, .dropzone.active{
+    border-color: var(--green-dim);
+    background: rgba(61,138,220,0.04);
+  }
+  .dropzone .kbd{
+    font-size: 20px;
+    color: var(--green);
+    letter-spacing: 0.05em;
+  }
+  .dropzone .hint{
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .cursor-blink{
+    display:inline-block;
+    width: 8px; height: 16px;
+    background: var(--green);
+    vertical-align: -3px;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .status{
+    margin-top: 14px;
+    font-size: 12.5px;
+    min-height: 18px;
+    color: var(--text-dim);
+  }
+  .status.ok{ color: var(--green); }
+  .status.err{ color: var(--red); }
+
+  .summary{
+    margin-top: 4px;
+    margin-bottom: 4px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    display:none;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+  }
+  .summary.show{ display:flex; }
+  .summary .chip{ color: var(--text); }
+  .summary .chip b{ color: var(--amber); font-weight:600; }
+
+  .toolbar{
+    display:none;
+    align-items:center;
+    justify-content: space-between;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .toolbar.show{ display:flex; }
+
+  .tabs{ display:flex; gap:4px; background:#0d130c; border:1px solid var(--panel-edge); border-radius:6px; padding:3px; }
+  .tab{
+    font-family: var(--font);
+    font-size: 11.5px;
+    letter-spacing: 0.03em;
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .tab.active{ background: var(--green-dim); color: #eaf4ff; }
+  .tab:disabled{ opacity: 0.35; cursor: not-allowed; }
+
+  .toolbar button.actionbtn{
+    font-family: var(--font);
+    font-size: 12px;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--panel-edge);
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .toolbar button.actionbtn:hover{ color: var(--green); border-color: var(--green-dim); }
+  .toolbar button.actionbtn-primary{ color: var(--green); border-color: var(--green-dim); }
+  .toolbar button.actionbtn-primary:hover{ background: rgba(61,138,220,0.1); }
+  .toolbar .btns{ display:flex; gap:8px; }
+
+  pre#output{
+    display:none;
+    margin: 0;
+    padding: 16px 18px;
+    background: #080a12;
+    border: 1px solid var(--panel-edge);
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    max-height: 60vh;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  pre#output.show{ display:block; }
+
+  .tab-edit{ margin-left: auto; }
+  .tab-edit.active{ background: rgba(232,180,100,0.2); color: var(--amber); }
+
+  .raw-edit-wrap{ display: none; }
+  .raw-edit-wrap.show{ display: block; }
+  .raw-edit-area{
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 400px;
+    max-height: 60vh;
+    margin: 0;
+    padding: 16px 18px;
+    background: #0a0e18;
+    color: var(--amber);
+    border: 1px solid rgba(232,180,100,0.4);
+    border-radius: 8px 8px 0 0;
+    font-family: var(--font);
+    font-size: 12.5px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+  }
+  .raw-edit-area:focus{ border-color: var(--amber); }
+  .raw-edit-toolbar{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #0e1524;
+    border: 1px solid var(--panel-edge);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    flex-wrap: wrap;
+  }
+  .raw-edit-status{ font-size: 11.5px; color: var(--text-dim); }
+  .raw-edit-status.ok{ color: var(--green); }
+  .raw-edit-status.err{ color: var(--red); }
+
+  #lowcodeOutput{
+    display:none;
+    max-height: 65vh;
+    overflow: auto;
+    padding-right: 4px;
+  }
+  #lowcodeOutput.show{ display:block; }
+
+  .k{ color: var(--key); }
+  .s{ color: var(--str); }
+  .n{ color: var(--num); }
+  .b{ color: var(--bool); }
+  .z{ color: var(--null); }
+
+  /* low-code view */
+  .trig-card{
+    border: 1px solid var(--panel-edge);
+    border-radius: 8px;
+    background: #0c1220;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .trig-head{
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--panel-edge-soft);
+    background: #0e1524;
+  }
+  .trig-desc{
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 3px;
+  }
+  .trig-desc.placeholder{ color: var(--text-dim); font-weight:400; font-style: italic; }
+  .trig-event{
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+  .trig-event b{ color: var(--green); font-weight: 500; }
+
+  .trig-event-editor{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top: 4px; }
+  .event-select{
+    font-family: var(--font);
+    font-size: 11.5px;
+    background: #06080f;
+    color: var(--green);
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 4px;
+    padding: 3px 6px;
+  }
+  .widget-id-wrap{ display:flex; align-items:center; gap:6px; }
+  .widget-id-label{ color: var(--text-dim); font-size: 11px; }
+  .widget-id-input{
+    font-family: var(--font);
+    font-size: 11.5px;
+    background: #06080f;
+    color: var(--text);
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 4px;
+    padding: 3px 6px;
+    width: 190px;
+  }
+  .widget-id-input:focus{ outline: none; border-color: var(--green-dim); }
+
+  .clause{ padding: 14px 16px; border-bottom: 1px solid var(--panel-edge-soft); }
+  .clause:last-child{ border-bottom: none; }
+
+  .clause-head{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .clause-head b{ color: var(--text); }
+
+  .cond-row{
+    display:flex;
+    align-items:center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 12px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    background: rgba(61,138,220,0.04);
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 5px;
+  }
+  .empty-note{
+    font-size: 12px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    color: var(--text-dim);
+    font-style: italic;
+    background: transparent;
+    border: 1px dashed var(--panel-edge-soft);
+    border-radius: 5px;
+  }
+
+  .then-head{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin: 12px 0 8px;
+  }
+
+  .action-row{
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #0a0e16;
+  }
+  .action-row:last-child{ margin-bottom: 0; }
+
+  .action-badges{ display:flex; gap:6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .badge{
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .badge-cat{ background: rgba(201,155,255,0.15); color: var(--badge-cat); }
+  .badge-sub{ background: rgba(111,143,121,0.15); color: var(--text); }
+  .badge-warn{ background: rgba(255,95,86,0.15); color: var(--red); }
+
+  .param-row{
+    display:flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12px;
+    margin-top: 5px;
+  }
+  .param-label{
+    color: var(--text-dim);
+    min-width: 108px;
+    flex-shrink: 0;
+    padding-top: 3px;
+  }
+  .param-type{
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+  .param-type.expr{ background: rgba(126,196,255,0.15); color: var(--badge-expr); }
+  .param-type.variable{ background: rgba(168,230,161,0.15); color: var(--badge-var); }
+  .param-type.static{ background: rgba(232,180,100,0.15); color: var(--badge-static); }
+  .param-type.op{ background: rgba(255,157,122,0.18); color: var(--bool); }
+
+  .param-value.inline{
+    background: #06080f;
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 4px;
+    padding: 3px 8px;
+    color: var(--text);
+  }
+
+  .param-value{
+    background: #06080f;
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 4px;
+    padding: 3px 8px;
+    color: var(--text);
+    word-break: break-word;
+    flex: 1;
+  }
+
+  .warn-note{
+    font-size: 11px;
+    color: var(--amber);
+    background: rgba(232,180,100,0.08);
+    border: 1px solid rgba(232,180,100,0.2);
+    border-radius: 5px;
+    padding: 6px 10px;
+    margin-top: 6px;
+  }
+
+  .code-toggle{
+    font-family: var(--font);
+    font-size: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+  .code-toggle:hover{ color: var(--green); border-color: var(--green-dim); }
+
+  .cond-row{ position: relative; }
+  .cond-row .code-toggle{ margin-left: 8px; }
+
+  .action-row.editing, .cond-row.editing{ background: rgba(126,196,255,0.04); border-color: var(--green-dim); }
+
+  .code-edit-row{
+    display:flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .code-input{
+    flex: 1;
+    font-family: var(--font);
+    font-size: 12.5px;
+    background: #06080f;
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    border-radius: 4px;
+    padding: 6px 10px;
+    outline: none;
+  }
+  .code-input:focus{ box-shadow: 0 0 0 2px rgba(61,138,220,0.15); }
+  .code-save{
+    font-family: var(--font);
+    font-size: 11.5px;
+    background: var(--green-dim);
+    color: #eaf4ff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .code-save:hover{ background: var(--green); color: #05070f; }
+  .code-error{
+    font-size: 11px;
+    color: var(--red);
+    margin-top: 6px;
+    display: none;
+  }
+  .code-error.show{ display: block; }
+
+  .chevron{
+    cursor: pointer;
+    user-select: none;
+    display: inline-block;
+    width: 14px;
+    flex-shrink: 0;
+    text-align: center;
+    color: var(--text-dim);
+    transition: transform 0.15s ease, color 0.15s ease;
+  }
+  .chevron:hover{ color: var(--green); }
+  .chevron.collapsed{ transform: rotate(-90deg); }
+
+  /* clause collapse */
+  .clause-header-row{ display:flex; align-items:flex-start; gap: 6px; }
+  .clause-header-row .clause-head{ margin-bottom: 0; flex: 1; min-width: 0; }
+  .clause-summary{
+    display: none;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    font-style: italic;
+    padding-top: 1px;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .clause-body{ margin-top: 8px; }
+
+  /* condition row collapse */
+  .cond-row{ align-items: flex-start; }
+  .cond-chips{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; flex: 1; min-width: 0; }
+  .cond-summary{
+    display: none;
+    color: var(--text-dim);
+    font-style: italic;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* action row collapse */
+  .action-header-row{ display:flex; align-items:center; gap: 6px; }
+  .action-header-row .action-badges{ margin-bottom: 0; flex-shrink: 0; }
+  .action-summary{
+    display: none;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    font-style: italic;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .action-row-body{ margin-top: 8px; }
+
+  ::selection{ background: rgba(61,138,220,0.25); }
+  ::-webkit-scrollbar{ width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track{ background: transparent; }
+  ::-webkit-scrollbar-thumb{ background: var(--panel-edge); border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover{ background: var(--green-dim); }
+
+  .footnote{
+    margin-top: 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    opacity: 0.7;
+    line-height: 1.5;
+  }
+
+  /* widget-capture modal */
+  .modal-backdrop{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.show{ display: flex; }
+  .modal-card{
+    width: 100%;
+    max-width: 520px;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.8);
+    overflow: hidden;
+  }
+  .modal-title{
+    padding: 14px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 1px solid var(--panel-edge-soft);
+    background: #0e1524;
+  }
+  .modal-body{ padding: 16px 18px; }
+  .modal-hint{ font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 0 0 10px; }
+  .modal-hint b{ color: var(--text); }
+  .modal-hint-warn{ color: var(--amber); }
+  .modal-dropzone{
+    border: 1px dashed var(--panel-edge);
+    border-radius: 8px;
+    min-height: 80px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    outline: none;
+    cursor: text;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .modal-dropzone:focus, .modal-dropzone.active{ border-color: var(--green-dim); background: rgba(61,138,220,0.04); }
+  .modal-dropzone .kbd{ font-size: 18px; color: var(--green); letter-spacing: 0.05em; }
+  .modal-status{ font-size: 12px; margin-top: 10px; min-height: 16px; color: var(--text-dim); }
+  .modal-status.ok{ color: var(--green); }
+  .modal-status.err{ color: var(--red); }
+  .modal-event-picker{ display: none; margin-top: 12px; }
+  .modal-event-picker.show{ display: block; }
+  .modal-event-picker-row{ display:flex; gap:8px; margin-top: 6px; }
+  .modal-event-picker-row select{
+    flex: 1;
+    font-family: var(--font);
+    font-size: 12px;
+    background: #06080f;
+    color: var(--text);
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 4px;
+    padding: 5px 8px;
+  }
+  .modal-footer{
+    padding: 12px 18px;
+    border-top: 1px solid var(--panel-edge-soft);
+    display: flex;
+    justify-content: flex-end;
+  }
+  .modal-manual{ margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--panel-edge-soft); }
+  .modal-manual-toggle{
+    font-size: 11.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
+  .modal-manual-toggle:hover{ color: var(--green); }
+  .modal-manual-fields{ display: none; margin-top: 10px; }
+  .modal-manual-fields.show{ display: block; }
+  .modal-manual-row{ display:flex; align-items:center; gap: 8px; margin-bottom: 8px; }
+  .modal-manual-row .widget-id-input{ flex: 1; width: auto; }
+
+  /* titlebar persistent target chip */
+  .titlebar-target{ margin-left: auto; display: flex; align-items: center; }
+  .titlebar-target-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(61,138,220,0.12);
+    border: 1px solid rgba(61,138,220,0.35);
+    color: var(--green);
+    border-radius: 5px;
+    padding: 3px 6px 3px 9px;
+    font-size: 11px;
+    font-family: var(--font);
+  }
+  .titlebar-target-chip .clear-x{
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    padding: 0 3px;
+  }
+  .titlebar-target-chip .clear-x:hover{ color: var(--red); }
+  .titlebar-target-chip .rename-label{
+    cursor: text;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: rgba(61,138,220,0.4);
+  }
+  .titlebar-target-chip .rename-label:hover{ color: #eaf4ff; }
+
+  /* per-trigger capture chip (replaces the button once both IDs are set) */
+  .capture-chip{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(126,196,255,0.12);
+    border: 1px solid rgba(126,196,255,0.35);
+    color: var(--badge-expr);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-family: var(--font);
+    margin-left: 4px;
+  }
+  .capture-chip .rename-label{
+    cursor: text;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: rgba(126,196,255,0.4);
+  }
+  .capture-chip .rename-label:hover{ color: #eafcff; }
+  .capture-chip .pencil{
+    opacity: 0.75;
+    cursor: pointer;
+    padding: 0 2px;
+  }
+  .capture-chip .pencil:hover{ opacity: 1; }
+  .inline-rename-input{
+    font-family: var(--font);
+    font-size: 11px;
+    background: #06080f;
+    color: var(--text);
+    border: 1px solid var(--green-dim);
+    border-radius: 3px;
+    padding: 1px 5px;
+    width: 140px;
+  }
+
+  /* "when" line changed-from-source highlight */
+  .trig-event-editor.when-changed{
+    background: rgba(232,180,100,0.12);
+    border: 1px solid rgba(232,180,100,0.5);
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin: 2px -8px 0;
+  }
+  .when-changed-badge{
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: #1a1206;
+    background: var(--amber);
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-left: 4px;
+  }
+
+  /* static id group with capture button */
+  .id-group{
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #06080f;
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 5px;
+    padding: 3px 4px 3px 8px;
+  }
+  .id-field{ display:flex; align-items:center; gap: 4px; }
+  .id-field-label{ font-size: 11px; color: var(--text-dim); }
+  .id-field-value{
+    font-size: 11.5px;
+    color: var(--text);
+    font-family: var(--font);
+    padding: 2px 4px;
+  }
+  .id-field-value.placeholder{ color: var(--text-dim); font-style: italic; }
+  .id-field-value input{
+    font-family: var(--font);
+    font-size: 11.5px;
+    background: #0a0e16;
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    border-radius: 3px;
+    padding: 2px 5px;
+    width: 150px;
+  }
+  .id-pencil{
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 11px;
+    background: none;
+    border: none;
+    padding: 0 3px;
+  }
+  .id-pencil:hover{ color: var(--green); }
+  .id-sep{ color: var(--panel-edge-soft); }
+  .capture-btn{
+    font-family: var(--font);
+    font-size: 11px;
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    border-radius: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    margin-left: 4px;
+  }
+  .capture-btn:hover{ background: rgba(61,138,220,0.1); }
+</style>
+</head>
+<body>
+
+  <div class="crt">
+    <div class="titlebar">
+      <span class="path"><b>Triumphant</b> <span class="version-badge">v0.1</span> — reads data-tulip-clipboard payloads</span>
+      <span class="titlebar-target" id="titlebarTarget"></span>
+    </div>
+
+    <div class="body">
+      <p class="lede">
+        <span class="prompt">$</span> copy a trigger, widget, or step in the Tulip app editor, then click below and paste.<br>
+        <span class="prompt">$</span> nothing leaves this page — decoding happens entirely in your browser.
+      </p>
+
+      <div class="dropzone" id="dropzone" tabindex="0">
+        <div class="kbd">Ctrl+V<span class="cursor-blink"></span></div>
+        <div class="hint">click here, then paste</div>
+      </div>
+
+      <div class="status" id="status"></div>
+      <div class="summary" id="summary"></div>
+
+      <div class="toolbar" id="toolbar">
+        <div class="tabs" id="tabs">
+          <button class="tab active" id="tabLowcode" data-tab="lowcode">low-code</button>
+          <button class="tab" id="tabRaw" data-tab="raw">raw json</button>
+          <button class="tab tab-edit" id="rawEditToggle">✎ enable raw edit</button>
+        </div>
+        <div class="btns">
+          <button class="actionbtn" id="copyBtn">copy json</button>
+          <button class="actionbtn actionbtn-primary" id="copyTulipBtn">copy for tulip paste</button>
+          <button class="actionbtn" id="downloadBtn">download .json</button>
+          <button class="actionbtn" id="clearBtn">clear</button>
+        </div>
+      </div>
+
+      <div id="lowcodeOutput"></div>
+      <pre id="output"></pre>
+      <div class="raw-edit-wrap" id="rawEditWrap">
+        <textarea id="rawEditArea" class="raw-edit-area" spellcheck="false"></textarea>
+        <div class="raw-edit-toolbar">
+          <button class="actionbtn actionbtn-primary" id="rawApplyBtn" type="button">validate &amp; apply</button>
+          <button class="actionbtn" id="rawRevertBtn" type="button">revert</button>
+          <button class="actionbtn" id="rawCancelBtn" type="button">cancel edit</button>
+          <span class="raw-edit-status" id="rawEditStatus"></span>
+        </div>
+      </div>
+
+      <div class="footnote">
+        Looks for <code>data-tulip-clipboard</code> inside the HTML clipboard fragment, base64-decodes it, and renders triggers as If/Then blocks.
+        Action and condition types are mapped from a small known table (<code>store_in_var</code>, <code>array_get_at_index</code>, <code>is_false</code>, etc.) —
+        unrecognized types fall back to a generic row so nothing is silently dropped. Expression strings (<code>exprStr</code>) are parsed from their internal AST;
+        infix operators are best-effort, since only <code>+</code> has been confirmed against a real screenshot so far.
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="widgetCaptureModal">
+    <div class="modal-card">
+      <div class="modal-title">Capture target widget's event IDs</div>
+      <div class="modal-body">
+        <p class="modal-hint">
+          Copy any <b>trigger</b> already on the target custom widget event — even an empty/throwaway one — then click below and paste.
+        </p>
+        <div class="modal-dropzone" id="modalDropzone" tabindex="0">
+          <div class="kbd">Ctrl+V<span class="cursor-blink"></span></div>
+        </div>
+        <div class="modal-status" id="modalStatus"></div>
+        <div class="modal-event-picker" id="modalEventPicker">
+          <div class="modal-hint">Multiple events found in this paste — choose one:</div>
+          <div class="modal-event-picker-row">
+            <select id="modalEventSelect"></select>
+            <button id="modalGoBtn" class="actionbtn actionbtn-primary" type="button">use this</button>
+          </div>
+        </div>
+        <div class="modal-manual">
+          <div class="modal-manual-toggle" id="modalManualToggle">or enter IDs manually</div>
+          <div class="modal-manual-fields" id="modalManualFields">
+            <div class="modal-manual-row">
+              <span class="widget-id-label">custom widget type ID:</span>
+              <input type="text" id="modalManualCwid" class="widget-id-input">
+            </div>
+            <div class="modal-manual-row">
+              <span class="widget-id-label">event name ID:</span>
+              <input type="text" id="modalManualEvt" class="widget-id-input">
+            </div>
+            <button id="modalManualBtn" class="actionbtn actionbtn-primary" type="button">use these</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="modalCancelBtn" class="actionbtn" type="button">cancel</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ===== code-mode core (registries, parser, converters) =====
+// ============================================================================
+// Shared "code mode" layer: converts between Tulip's internal node shapes
+// (Field / StaticValue / Function, plus the input_value wrapper used at the
+// top level of conditions/actions) and an editable JS-flavored text form.
+//
+// Design rules (see conversation for rationale):
+//  - Tulip-native functions with no JS equivalent get a "$T." prefix, so any
+//    function name round-trips even if it's not in the registry (generic
+//    camelCase <-> snake_case fallback).
+//  - Variable names are arbitrary strings (spaces, parens, hyphens) so they
+//    are addressed as Variable['Full Name'], with plain `.dotted` access
+//    for path segments that already look like valid identifiers.
+//  - array_get_at_index gets real JS bracket sugar: target = arr[idx]
+//  - Everything else assignment-shaped (has a known target slot) prints as
+//    target = expr;  Anything NOT in the registry falls back to a generic,
+//    still-reversible $T.raw('type', arg0, arg1, ...) statement.
+//  - Parsing NEVER guesses on unresolvable variable names — it throws.
+// ============================================================================
+
+const IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+function toCamel(snake){
+  return String(snake).replace(/_([a-zA-Z0-9])/g, function(_, c){ return c.toUpperCase(); });
+}
+function toSnake(camel){
+  return String(camel).replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+}
+
+// ---- registries -----------------------------------------------------------
+// Only entries confirmed against a real Tulip screenshot/paste are marked
+// confirmed:true; everything else round-trips via the generic fallback and
+// should be treated as unverified until we see it for real.
+
+const FUNCTION_REGISTRY = {
+  array_index_of:      { jsAlias: 'arrayIndexOf',     confirmed: true },
+  map_to_integer_list:  { jsAlias: 'mapToIntegerList',  confirmed: true }
+};
+
+const CONDITION_REGISTRY = {
+  is_false: { jsAlias: 'isFalse', confirmed: true },
+  is_true:  { jsAlias: 'isTrue',  confirmed: false }
+};
+
+// assignTargetIdx marks which input_values slot is the store location.
+// arraySugar means: render as target = arrSlot[idxSlot] instead of a $T call.
+const ACTION_REGISTRY = {
+  store_in_var: {
+    confirmed: true,
+    dataIdx: 0,
+    targetIdx: 1
+  },
+  array_get_at_index: {
+    confirmed: true,
+    arraySugar: true,
+    arrayIdx: 0,
+    indexIdx: 1,
+    targetIdx: 2
+  }
+};
+
+// Native infix operators. Only '+' is confirmed against a real exprStr;
+// the rest are symmetric guesses and are flagged as such wherever surfaced.
+const JS_TO_TULIP_OP = { '+':'+', '-':'-', '*':'*', '/':'/', '==':'==', '!=':'!=', '<':'<', '<=':'<=', '>':'>', '>=':'>=', '&&':'and', '||':'or' };
+const TULIP_TO_JS_OP = {};
+Object.keys(JS_TO_TULIP_OP).forEach(function(js){ TULIP_TO_JS_OP[JS_TO_TULIP_OP[js]] = js; });
+const CONFIRMED_OPS = { '+': true }; // everything else in the table above is a guess
+
+// ---- variable name <-> id lookups -----------------------------------------
+
+function buildNameToIdMap(variables){
+  const map = {};
+  (variables || []).forEach(function(v){ map[v.name] = v._id; });
+  return map;
+}
+
+// Best-effort: walk a variable's declared `type` through a path array to
+// find the baseType at the leaf, so reconstructed input_values carry real
+// type info instead of guesses. Falls back to null if the shape is unknown
+// (e.g. array-of-record types, which we don't attempt to index into here).
+function lookupBaseType(variable, path){
+  if (!variable) return null;
+  let t = variable.type;
+  for (let i = 0; i < (path || []).length; i++){
+    if (t && typeof t === 'object' && !Array.isArray(t) && t[path[i]] !== undefined){
+      t = t[path[i]];
+    } else {
+      return null; // can't resolve through arrays or unknown shapes yet
+    }
+  }
+  return (typeof t === 'string') ? t : null;
+}
+
+// ---- iv (input_value) <-> internal node ------------------------------------
+// Internal node shapes mirror Tulip's own exprStr AST: Field / StaticValue / Function.
+
+function ivToNode(iv){
+  if (!iv || typeof iv !== 'object') throw new Error('malformed input_value');
+  if (iv.datasourceType === 'variable'){
+    return { type: 'Field', opts: { variableId: iv.variableId, path: iv.path || [] } };
+  }
+  if (iv.datasourceType === 'static'){
+    const baseType = iv.valueType && iv.valueType.baseType;
+    return { type: 'StaticValue', value: iv.value, valueType: baseType };
+  }
+  if (iv.datasourceType === 'expr'){
+    return JSON.parse(iv.exprStr);
+  }
+  throw new Error('unknown datasourceType: ' + iv.datasourceType);
+}
+
+// data = the full decoded payload (needs .variables for type lookup).
+// wantExpr: if true, always wrap non-Field/StaticValue nodes as datasourceType:'expr'
+//   with a serialized exprStr (used for RHS "data" slots). If false, a bare
+//   Field/StaticValue is emitted directly as variable/static (used for slots
+//   that are always plain variable refs, like store targets).
+function nodeToIv(node, data, opts){
+  opts = opts || {};
+  const varMap = buildVarMapById(data);
+
+  if (node.type === 'Field'){
+    const variable = varMap[node.opts.variableId];
+    const baseType = lookupBaseType(variable, node.opts.path);
+    return {
+      datasourceType: 'variable',
+      variableId: node.opts.variableId,
+      path: node.opts.path || [],
+      valueType: { baseType: baseType, isReadable: true, isWritable: true }
+    };
+  }
+
+  if (node.type === 'StaticValue'){
+    const inferredBase = node.valueType || inferBaseTypeFromLiteral(node.value);
+    return {
+      datasourceType: 'static',
+      value: node.value,
+      valueType: { baseType: inferredBase, isReadable: true, isWritable: false }
+    };
+  }
+
+  // Function node — always goes through as an expression
+  return {
+    datasourceType: 'expr',
+    exprStr: JSON.stringify(node),
+    valueType: { baseType: opts.resultBaseType || 'unknown', isReadable: true, isWritable: false }
+  };
+}
+
+function buildVarMapById(data){
+  const map = {};
+  (data.variables || []).forEach(function(v){ map[v._id] = v; });
+  return map;
+}
+
+function inferBaseTypeFromLiteral(value){
+  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'number') return Number.isInteger(value) ? 'integer' : 'float';
+  return 'string';
+}
+
+// ---- node -> JS-flavored code ----------------------------------------------
+
+function memberChainToCode(name, path){
+  let out = IDENT_RE.test(name) ? 'Variable.' + name : "Variable['" + name.replace(/'/g, "\\'") + "']";
+  (path || []).forEach(function(seg){
+    out += IDENT_RE.test(seg) ? '.' + seg : "['" + String(seg).replace(/'/g, "\\'") + "']";
+  });
+  return out;
+}
+
+function staticToCode(value, baseType){
+  if (value === null || value === undefined) return 'null';
+  if (baseType === 'string') return "'" + String(value).replace(/'/g, "\\'") + "'";
+  return String(value); // boolean/number print as native JS literals in code mode
+}
+
+function nodeToCode(node, varMap){
+  if (node.type === 'StaticValue'){
+    return staticToCode(node.value, node.valueType);
+  }
+  if (node.type === 'Field'){
+    const name = varMap[node.opts.variableId] || node.opts.variableId;
+    return memberChainToCode(name, node.opts.path);
+  }
+  if (node.type === 'Function'){
+    const args = (node.arguments || []).map(function(a){ return nodeToCode(a, varMap); });
+    const jsOp = TULIP_TO_JS_OP[node.name];
+    if (jsOp && args.length >= 2){
+      return args.join(' ' + jsOp + ' ');
+    }
+    const reg = FUNCTION_REGISTRY[node.name];
+    const alias = reg ? reg.jsAlias : toCamel(node.name);
+    return '$T.' + alias + '(' + args.join(', ') + ')';
+  }
+  throw new Error('cannot render node type: ' + node.type);
+}
+
+// ---- action / condition -> code (one line each) ----------------------------
+
+function ivNodeToCode(iv, varMap){
+  return nodeToCode(ivToNode(iv), varMap);
+}
+
+function actionToCode(action, varMap){
+  const spec = ACTION_REGISTRY[action.type];
+  const ivs = action.input_values || [];
+
+  if (spec && spec.arraySugar){
+    const arr = ivNodeToCode(ivs[spec.arrayIdx], varMap);
+    const idx = ivNodeToCode(ivs[spec.indexIdx], varMap);
+    const target = ivNodeToCode(ivs[spec.targetIdx], varMap);
+    return target + ' = ' + arr + '[' + idx + '];';
+  }
+  if (spec && spec.dataIdx !== undefined && spec.targetIdx !== undefined){
+    const data = ivNodeToCode(ivs[spec.dataIdx], varMap);
+    const target = ivNodeToCode(ivs[spec.targetIdx], varMap);
+    return target + ' = ' + data + ';';
+  }
+
+  // generic, still-reversible fallback
+  const args = ivs.map(function(iv){ return ivNodeToCode(iv, varMap); });
+  return '$T.raw(' + JSON.stringify(action.type) + (args.length ? ', ' + args.join(', ') : '') + ');';
+}
+
+function conditionToCode(cond, varMap){
+  const reg = CONDITION_REGISTRY[cond.type];
+  const alias = reg ? reg.jsAlias : toCamel(cond.type);
+  const args = (cond.input_values || []).map(function(iv){ return ivNodeToCode(iv, varMap); });
+  return '$T.' + alias + '(' + args.join(', ') + ')';
+}
+
+// ---- tokenizer --------------------------------------------------------------
+
+function tokenize(src){
+  const tokens = [];
+  let i = 0;
+  const n = src.length;
+  const push = function(type, value){ tokens.push({ type: type, value: value }); };
+
+  while (i < n){
+    const c = src[i];
+    if (/\s/.test(c)){ i++; continue; }
+
+    if (c === "'" || c === '"'){
+      const quote = c; let j = i + 1; let out = '';
+      while (j < n && src[j] !== quote){
+        if (src[j] === '\\' && j + 1 < n){ out += src[j + 1]; j += 2; }
+        else { out += src[j]; j++; }
+      }
+      if (j >= n) throw new Error('unterminated string literal');
+      push('STRING', out);
+      i = j + 1;
+      continue;
+    }
+
+    if (/[0-9]/.test(c) || (c === '-' && /[0-9]/.test(src[i + 1] || '') && (tokens.length === 0 || /^[([,=]|&&|\|\||[+\-*/<>]|==|!=|<=|>=$/.test((tokens[tokens.length - 1] || {}).value || '')))){
+      let j = i + (c === '-' ? 1 : 0) + 1;
+      while (j < n && /[0-9.]/.test(src[j])) j++;
+      push('NUMBER', src.slice(i, j));
+      i = j;
+      continue;
+    }
+
+    if (/[A-Za-z_$]/.test(c)){
+      let j = i + 1;
+      while (j < n && /[A-Za-z0-9_$]/.test(src[j])) j++;
+      push('IDENT', src.slice(i, j));
+      i = j;
+      continue;
+    }
+
+    const two = src.slice(i, i + 2);
+    if (['==', '!=', '<=', '>=', '&&', '||'].indexOf(two) !== -1){
+      push('OP', two); i += 2; continue;
+    }
+    if ('+-*/<>=[](),.'.indexOf(c) !== -1){
+      push(c === '.' ? 'DOT' : (c === '[' ? 'LBRACK' : (c === ']' ? 'RBRACK' : (c === '(' ? 'LPAREN' : (c === ')' ? 'RPAREN' : (c === ',' ? 'COMMA' : (c === '=' ? 'EQUALS' : 'OP')))))), c);
+      i++;
+      continue;
+    }
+
+    throw new Error('unexpected character "' + c + '" at position ' + i);
+  }
+  push('EOF', null);
+  return tokens;
+}
+
+// ---- recursive-descent parser -----------------------------------------------
+// Grammar (informal):
+//   statement   := assignment | rawCall | expr
+//   assignment  := memberChain '=' expr ';'?
+//   expr        := orExpr
+//   orExpr      := andExpr ( '||' andExpr )*
+//   andExpr     := equality ( '&&' equality )*
+//   equality    := relational ( ('=='|'!=') relational )*
+//   relational  := additive ( ('<'|'<='|'>'|'>=') additive )*
+//   additive    := multiplicative ( ('+'|'-') multiplicative )*
+//   multiplicative := postfix ( ('*'|'/') postfix )*
+//   postfix     := primary ( '[' expr ']' )*      // bracket indexing, only meaningful at top level
+//   primary     := 'Variable' memberTail | '$T' '.' IDENT '(' args ')' | STRING | NUMBER | 'true' | 'false' | 'null' | '(' expr ')'
+//   memberTail  := ( '.' IDENT | '[' STRING ']' )*
+
+function Parser(tokens, varNameToId){
+  this.tokens = tokens;
+  this.pos = 0;
+  this.varNameToId = varNameToId;
+}
+Parser.prototype.peek = function(){ return this.tokens[this.pos]; };
+Parser.prototype.next = function(){ return this.tokens[this.pos++]; };
+Parser.prototype.expect = function(type){
+  const t = this.next();
+  if (t.type !== type) throw new Error('expected ' + type + ' but got ' + t.type + ' ("' + t.value + '")');
+  return t;
+};
+
+Parser.prototype.parseMemberTail = function(){
+  const path = [];
+  while (true){
+    if (this.peek().type === 'DOT'){
+      this.next();
+      const id = this.expect('IDENT');
+      path.push(id.value);
+    } else if (this.peek().type === 'LBRACK' && this.tokens[this.pos + 1] && this.tokens[this.pos + 1].type === 'STRING'){
+      // member-path bracket, e.g. ['Field Name'] — only consumed when the
+      // bracket contents are a string literal. A non-string bracket (e.g.
+      // an array index expression) is left for parsePostfix to handle.
+      this.next();
+      const s = this.expect('STRING');
+      this.expect('RBRACK');
+      path.push(s.value);
+    } else {
+      break;
+    }
+  }
+  return path;
+};
+
+Parser.prototype.parseArgs = function(){
+  const args = [];
+  this.expect('LPAREN');
+  if (this.peek().type !== 'RPAREN'){
+    args.push(this.parseExpr());
+    while (this.peek().type === 'COMMA'){ this.next(); args.push(this.parseExpr()); }
+  }
+  this.expect('RPAREN');
+  return args;
+};
+
+Parser.prototype.parsePrimary = function(){
+  const t = this.peek();
+
+  if (t.type === 'IDENT' && t.value === 'Variable'){
+    this.next();
+    let name;
+    if (this.peek().type === 'DOT'){
+      this.next();
+      name = this.expect('IDENT').value;
+    } else if (this.peek().type === 'LBRACK'){
+      this.next();
+      name = this.expect('STRING').value;
+      this.expect('RBRACK');
+    } else {
+      throw new Error('expected .name or [\'name\'] after Variable');
+    }
+    const variableId = this.varNameToId[name];
+    if (!variableId) throw new Error('unknown variable name: "' + name + '" — it must match a variable already present in this payload');
+    const path = this.parseMemberTail();
+    return { type: 'Field', opts: { variableId: variableId, path: path } };
+  }
+
+  if (t.type === 'IDENT' && t.value === '$T'){
+    this.next();
+    this.expect('DOT');
+    const method = this.expect('IDENT').value;
+    const args = this.parseArgs();
+    const revEntry = Object.keys(FUNCTION_REGISTRY).find(function(k){ return FUNCTION_REGISTRY[k].jsAlias === method; });
+    const name = revEntry || toSnake(method);
+    return { type: 'Function', name: name, arguments: args };
+  }
+
+  if (t.type === 'IDENT' && t.value === 'true'){ this.next(); return { type: 'StaticValue', value: true, valueType: 'boolean' }; }
+  if (t.type === 'IDENT' && t.value === 'false'){ this.next(); return { type: 'StaticValue', value: false, valueType: 'boolean' }; }
+  if (t.type === 'IDENT' && t.value === 'null'){ this.next(); return { type: 'StaticValue', value: null, valueType: null }; }
+
+  if (t.type === 'STRING'){ this.next(); return { type: 'StaticValue', value: t.value, valueType: 'string' }; }
+  if (t.type === 'NUMBER'){
+    this.next();
+    const num = Number(t.value);
+    return { type: 'StaticValue', value: num, valueType: Number.isInteger(num) ? 'integer' : 'float' };
+  }
+
+  if (t.type === 'LPAREN'){
+    this.next();
+    const e = this.parseExpr();
+    this.expect('RPAREN');
+    return e;
+  }
+
+  throw new Error('unexpected token: ' + t.type + ' ("' + t.value + '")');
+};
+
+// postfix bracket indexing — only used by the top-level assignment-RHS
+// shortcut (array_get_at_index sugar). Parsed generically here; the caller
+// decides whether an index-suffixed RHS is legal in that position.
+Parser.prototype.parsePostfix = function(){
+  let node = this.parsePrimary();
+  while (this.peek().type === 'LBRACK'){
+    this.next();
+    const idx = this.parseExpr();
+    this.expect('RBRACK');
+    node = { type: 'Index', array: node, index: idx }; // internal-only, not a Tulip AST node
+  }
+  return node;
+};
+
+function makeBinaryLevel(nextLevelFn, ops){
+  return function(){
+    let left = nextLevelFn.call(this);
+    while (ops.indexOf(this.peek().value) !== -1 && (this.peek().type === 'OP' || this.peek().type === 'op')){
+      const opTok = this.next();
+      const right = nextLevelFn.call(this);
+      left = { type: 'Function', name: JS_TO_TULIP_OP[opTok.value] || opTok.value, arguments: [left, right] };
+    }
+    return left;
+  };
+}
+
+Parser.prototype.parseMultiplicative = makeBinaryLevel(Parser.prototype.parsePostfix, ['*', '/']);
+Parser.prototype.parseAdditive = makeBinaryLevel(Parser.prototype.parseMultiplicative, ['+', '-']);
+Parser.prototype.parseRelational = makeBinaryLevel(Parser.prototype.parseAdditive, ['<', '<=', '>', '>=']);
+Parser.prototype.parseEquality = makeBinaryLevel(Parser.prototype.parseRelational, ['==', '!=']);
+Parser.prototype.parseAnd = makeBinaryLevel(Parser.prototype.parseEquality, ['&&']);
+Parser.prototype.parseOr = makeBinaryLevel(Parser.prototype.parseAnd, ['||']);
+Parser.prototype.parseExpr = function(){ return this.parseOr(); };
+
+// ---- top-level entry points --------------------------------------------------
+
+function parseExprCode(str, varNameToId){
+  const tokens = tokenize(str);
+  const parser = new Parser(tokens, varNameToId);
+  const node = parser.parseExpr();
+  if (parser.peek().type !== 'EOF') throw new Error('unexpected trailing input near "' + parser.peek().value + '"');
+  return node;
+}
+
+// Parses a single condition line: must be exactly `$T.alias(args...)`.
+function parseConditionCode(str, varNameToId){
+  const node = parseExprCode(str.trim(), varNameToId);
+  if (node.type !== 'Function') throw new Error('a condition must be a single $T.something(...) call');
+  return { type: node.name, input_values_nodes: node.arguments };
+}
+
+// Parses a single action line. Supports:
+//   target = expr;
+//   target = arr[idx];      -> array_get_at_index sugar
+//   $T.raw('type', a, b);   -> generic fallback
+function parseActionCode(str, varNameToId){
+  let src = str.trim();
+  if (src.endsWith(';')) src = src.slice(0, -1).trim();
+
+  const tokens = tokenize(src);
+  const parser = new Parser(tokens, varNameToId);
+
+  // detect `$T.raw(...)` first
+  if (tokens[0] && tokens[0].value === '$T' && tokens[2] && tokens[2].value === 'raw'){
+    parser.next(); parser.next(); parser.next(); // $T . raw
+    const args = parser.parseArgs();
+    if (parser.peek().type !== 'EOF') throw new Error('unexpected trailing input after $T.raw(...)');
+    if (args[0].type !== 'StaticValue' || typeof args[0].value !== 'string'){
+      throw new Error('$T.raw(...) first argument must be a string action type');
+    }
+    return { rawType: args[0].value, argNodes: args.slice(1) };
+  }
+
+  // otherwise expect: memberChain = expr
+  if (!(tokens[0].value === 'Variable')) throw new Error('expected an assignment starting with Variable...');
+  const target = parser.parsePrimary(); // consumes the Variable[...].path chain
+  parser.expect('EQUALS');
+  const rhs = parser.parseExpr();
+  if (parser.peek().type !== 'EOF') throw new Error('unexpected trailing input near "' + parser.peek().value + '"');
+
+  if (rhs.type === 'Index'){
+    return { assign: true, arraySugar: true, target: target, array: rhs.array, index: rhs.index };
+  }
+  return { assign: true, arraySugar: false, target: target, data: rhs };
+}
+
+if (typeof module !== 'undefined'){
+  module.exports = {
+    FUNCTION_REGISTRY, CONDITION_REGISTRY, ACTION_REGISTRY, CONFIRMED_OPS,
+    buildNameToIdMap, buildVarMapById, ivToNode, nodeToIv,
+    nodeToCode, actionToCode, conditionToCode,
+    tokenize, parseExprCode, parseConditionCode, parseActionCode
+  };
+}
+
+// ===== end code-mode core =====
+(function(){
+  const dropzone = document.getElementById('dropzone');
+  const statusEl = document.getElementById('status');
+  const summaryEl = document.getElementById('summary');
+  const toolbar = document.getElementById('toolbar');
+  const output = document.getElementById('output');
+  const lowcodeOutput = document.getElementById('lowcodeOutput');
+  const copyBtn = document.getElementById('copyBtn');
+  const copyTulipBtn = document.getElementById('copyTulipBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const tabLowcode = document.getElementById('tabLowcode');
+  const tabRaw = document.getElementById('tabRaw');
+  const rawEditToggle = document.getElementById('rawEditToggle');
+  const rawEditWrap = document.getElementById('rawEditWrap');
+  const rawEditArea = document.getElementById('rawEditArea');
+  const rawApplyBtn = document.getElementById('rawApplyBtn');
+  const rawRevertBtn = document.getElementById('rawRevertBtn');
+  const rawCancelBtn = document.getElementById('rawCancelBtn');
+  const rawEditStatus = document.getElementById('rawEditStatus');
+
+  const widgetCaptureModal = document.getElementById('widgetCaptureModal');
+  const modalDropzone = document.getElementById('modalDropzone');
+  const modalStatus = document.getElementById('modalStatus');
+  const modalEventPicker = document.getElementById('modalEventPicker');
+  const modalEventSelect = document.getElementById('modalEventSelect');
+  const modalGoBtn = document.getElementById('modalGoBtn');
+  const modalCancelBtn = document.getElementById('modalCancelBtn');
+  const modalManualToggle = document.getElementById('modalManualToggle');
+  const modalManualFields = document.getElementById('modalManualFields');
+  const modalManualCwid = document.getElementById('modalManualCwid');
+  const modalManualEvt = document.getElementById('modalManualEvt');
+  const modalManualBtn = document.getElementById('modalManualBtn');
+  const titlebarTarget = document.getElementById('titlebarTarget');
+
+  let lastJsonText = '';
+  let currentData = null;
+
+  // Persistent captured target (customWidgetId + eventName + a human label),
+  // survives across pastes until explicitly cleared. Per-trigger capture
+  // labels and each trigger's as-pasted "When" snapshot (for the changed
+  // highlight and full revert-on-clear) live in WeakMaps so they never leak
+  // into the exported JSON.
+  let globalWidgetTarget = null;
+  const captureLabelMap = new WeakMap();
+  const originalSnapshotMap = new WeakMap();
+
+  function stableStringify(obj){
+    if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
+    if (Array.isArray(obj)) return '[' + obj.map(stableStringify).join(',') + ']';
+    const keys = Object.keys(obj).sort();
+    return '{' + keys.map(function(k){ return JSON.stringify(k) + ':' + stableStringify(obj[k]); }).join(',') + '}';
+  }
+
+  function snapshotTriggerWhen(trigger){
+    originalSnapshotMap.set(trigger, {
+      event: JSON.parse(JSON.stringify(trigger.event)),
+      parent_widget: trigger.parent_widget
+    });
+  }
+
+  function triggerWhenChanged(trigger){
+    const snap = originalSnapshotMap.get(trigger);
+    if (!snap) return false;
+    const current = stableStringify({ event: trigger.event, parent_widget: trigger.parent_widget });
+    const original = stableStringify({ event: snap.event, parent_widget: snap.parent_widget });
+    return current !== original;
+  }
+
+  function refreshView(){
+    if (!currentData) return;
+    const pretty = JSON.stringify(currentData, null, 2);
+    lastJsonText = pretty;
+    output.innerHTML = syntaxHighlight(pretty);
+    renderLowCode(currentData);
+  }
+
+  // Swaps labelSpan for a small text input pre-filled with currentLabel;
+  // Enter or blur commits via onCommit, which is expected to trigger a
+  // re-render (so this temporary input gets replaced by fresh markup).
+  function startInlineRename(labelSpan, currentLabel, onCommit){
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'inline-rename-input';
+    input.value = currentLabel;
+    let committed = false;
+    function commit(){
+      if (committed) return;
+      committed = true;
+      const v = input.value.trim();
+      if (v && v !== currentLabel) onCommit(v);
+    }
+    input.addEventListener('keydown', function(ev){ if (ev.key === 'Enter'){ ev.preventDefault(); commit(); input.blur(); } });
+    input.addEventListener('blur', commit);
+    input.addEventListener('click', function(e){ e.stopPropagation(); });
+    labelSpan.replaceWith(input);
+    input.focus();
+    input.select();
+  }
+
+  function renderTitlebarTarget(){
+    titlebarTarget.innerHTML = '';
+    if (!globalWidgetTarget) return;
+    const chip = document.createElement('span');
+    chip.className = 'titlebar-target-chip';
+
+    const label = document.createElement('span');
+    label.className = 'rename-label';
+    label.textContent = 'target: ' + globalWidgetTarget.label;
+    label.title = 'click to rename';
+    label.addEventListener('click', function(e){
+      e.stopPropagation();
+      startInlineRename(label, globalWidgetTarget.label, renameGlobalTarget);
+    });
+    chip.appendChild(label);
+
+    const clearX = document.createElement('button');
+    clearX.type = 'button';
+    clearX.className = 'clear-x';
+    clearX.title = 'clear persisted target';
+    clearX.textContent = '✕';
+    clearX.addEventListener('click', clearGlobalTarget);
+    chip.appendChild(clearX);
+    titlebarTarget.appendChild(chip);
+  }
+
+  function renameGlobalTarget(newLabel){
+    if (!globalWidgetTarget) return;
+    globalWidgetTarget.label = newLabel;
+    if (currentData){
+      (currentData.triggers || []).forEach(function(trigger){
+        if (trigger.event && trigger.event.customWidgetId === globalWidgetTarget.customWidgetId &&
+            trigger.event.eventName === globalWidgetTarget.eventName){
+          captureLabelMap.set(trigger, newLabel);
+        }
+      });
+    }
+    renderTitlebarTarget();
+    refreshView();
+  }
+
+  function renameTarget(trigger, newLabel){
+    captureLabelMap.set(trigger, newLabel);
+    if (globalWidgetTarget && trigger.event &&
+        trigger.event.customWidgetId === globalWidgetTarget.customWidgetId &&
+        trigger.event.eventName === globalWidgetTarget.eventName){
+      globalWidgetTarget.label = newLabel;
+      renderTitlebarTarget();
+    }
+    refreshView();
+  }
+
+  function clearGlobalTarget(){
+    globalWidgetTarget = null;
+    if (currentData){
+      (currentData.triggers || []).forEach(function(trigger){
+        const snap = originalSnapshotMap.get(trigger);
+        if (!snap) return;
+        trigger.event = JSON.parse(JSON.stringify(snap.event));
+        if (snap.parent_widget !== undefined) trigger.parent_widget = snap.parent_widget;
+        else delete trigger.parent_widget;
+        captureLabelMap.delete(trigger);
+      });
+    }
+    renderTitlebarTarget();
+    refreshView();
+  }
+
+
+  // ---------- generic helpers ----------
+
+  function setStatus(msg, cls){
+    statusEl.textContent = msg;
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function decodeEntities(str){
+    const ta = document.createElement('textarea');
+    ta.innerHTML = str;
+    return ta.value;
+  }
+
+  // ---- widget-capture modal ---------------------------------------------
+  // event.eventName only ever shows up reliably on an actual trigger object
+  // (confirmed: event.customWidgetId + event.eventName are both present
+  // there). A copied *widget* does not carry its event catalog — confirmed by
+  // inspecting a real widget-copy payload, which had customWidgetId but no
+  // trace of any eventName anywhere in the JSON. So: getting eventName
+  // requires pasting an existing trigger already on the target widget (any
+  // one — eventName is shared across all instances of the same customWidgetId).
+  function extractTriggerEventCandidates(data){
+    const candidates = [];
+    (data.triggers || []).forEach(function(t){
+      if (t.event && t.event.type === 'custom_widget_event' && t.event.customWidgetId){
+        candidates.push({
+          customWidgetId: t.event.customWidgetId,
+          eventName: t.event.eventName,
+          label: (t.description && t.description.trim()) ? t.description.trim() : '(untitled trigger)'
+        });
+      }
+    });
+    return candidates;
+  }
+
+  let modalTargetTrigger = null;
+  let modalTargetCtx = null;
+
+  function openWidgetCaptureModal(trigger, ctx){
+    modalTargetTrigger = trigger;
+    modalTargetCtx = ctx;
+    modalStatus.textContent = '';
+    modalStatus.className = 'modal-status';
+    modalEventPicker.classList.remove('show');
+    modalManualFields.classList.remove('show');
+    modalManualCwid.value = '';
+    modalManualEvt.value = '';
+    modalGoBtn.onclick = null;
+    widgetCaptureModal.classList.add('show');
+    setTimeout(function(){ modalDropzone.focus(); }, 0);
+  }
+
+  function closeWidgetCaptureModal(){
+    widgetCaptureModal.classList.remove('show');
+    modalTargetTrigger = null;
+    modalTargetCtx = null;
+  }
+
+  modalCancelBtn.addEventListener('click', closeWidgetCaptureModal);
+  widgetCaptureModal.addEventListener('click', function(e){
+    if (e.target === widgetCaptureModal) closeWidgetCaptureModal();
+  });
+
+  modalManualToggle.addEventListener('click', function(){
+    modalManualFields.classList.toggle('show');
+  });
+  modalManualBtn.addEventListener('click', function(){
+    const cwid = modalManualCwid.value.trim();
+    const evt = modalManualEvt.value.trim();
+    if (!cwid || !evt){
+      modalStatus.textContent = 'both fields are required to use this manually.';
+      modalStatus.className = 'modal-status err';
+      return;
+    }
+    applyCapture(cwid, evt, cwid.slice(0, 8) + '… / ' + evt.slice(0, 8) + '…');
+    closeWidgetCaptureModal();
+  });
+
+  // Sets the target on whichever trigger opened the modal, and — this is
+  // what makes it persist across future pastes — also updates the global
+  // target shown in the header chip.
+  function applyCapture(customWidgetId, eventName, label){
+    if (!modalTargetTrigger) return;
+    if (customWidgetId) modalTargetTrigger.event.customWidgetId = customWidgetId;
+    if (eventName) modalTargetTrigger.event.eventName = eventName;
+    if (customWidgetId && eventName){
+      captureLabelMap.set(modalTargetTrigger, label);
+      globalWidgetTarget = { customWidgetId: customWidgetId, eventName: eventName, label: label };
+      renderTitlebarTarget();
+    }
+    if (modalTargetCtx) modalTargetCtx.afterEdit();
+  }
+
+  function processWidgetCapture(data){
+    const triggerCandidates = extractTriggerEventCandidates(data);
+
+    if (triggerCandidates.length === 1){
+      const c = triggerCandidates[0];
+      applyCapture(c.customWidgetId, c.eventName, c.label);
+      modalStatus.textContent = 'captured both IDs from this trigger.';
+      modalStatus.className = 'modal-status ok';
+      setTimeout(closeWidgetCaptureModal, 900);
+      return;
+    }
+
+    if (triggerCandidates.length > 1){
+      modalStatus.textContent = 'multiple custom-widget-event triggers found in this paste — choose one:';
+      modalStatus.className = 'modal-status ok';
+      modalEventSelect.innerHTML = '';
+      triggerCandidates.forEach(function(c, i){
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = c.label + '  (' + (c.eventName || 'no eventName') + ')';
+        modalEventSelect.appendChild(opt);
+      });
+      modalEventPicker.classList.add('show');
+      modalGoBtn.onclick = function(){
+        const chosen = triggerCandidates[Number(modalEventSelect.value)];
+        applyCapture(chosen.customWidgetId, chosen.eventName, chosen.label);
+        closeWidgetCaptureModal();
+      };
+      return;
+    }
+
+    modalStatus.textContent = 'no custom-widget-event trigger found in this paste — copy a trigger already on the target widget (even an empty one), or enter IDs manually below.';
+    modalStatus.className = 'modal-status err';
+  }
+
+  modalDropzone.addEventListener('paste', function(e){
+    e.preventDefault();
+    modalDropzone.classList.add('active');
+    const cd = e.clipboardData || window.clipboardData;
+    const html = cd && cd.getData('text/html');
+    if (!html || html.indexOf('data-tulip-clipboard') === -1){
+      modalStatus.textContent = 'no Tulip clipboard data found in that paste — make sure you copied a trigger from Tulip.';
+      modalStatus.className = 'modal-status err';
+      return;
+    }
+    const match = html.match(/data-tulip-clipboard="([^"]+)"/);
+    let data;
+    try {
+      const b64 = decodeEntities(match[1]);
+      data = JSON.parse(decodeURIComponent(escape(atob(b64))));
+    } catch (err){
+      modalStatus.textContent = 'found Tulip clipboard data but could not decode it: ' + err.message;
+      modalStatus.className = 'modal-status err';
+      return;
+    }
+    processWidgetCapture(data);
+  });
+  modalDropzone.addEventListener('focus', function(){ modalDropzone.classList.add('active'); });
+  modalDropzone.addEventListener('blur', function(){ modalDropzone.classList.remove('active'); });
+  modalDropzone.addEventListener('click', function(){ modalDropzone.focus(); });
+  // ---- end widget-capture modal -------------------------------------------
+
+  function esc(str){
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function syntaxHighlight(jsonStr){
+    const escaped = esc(jsonStr);
+    return escaped.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(\.\d+)?([eE][+-]?\d+)?)/g,
+      function(match){
+        let cls = 'n';
+        if (/^"/.test(match)){
+          cls = /:$/.test(match) ? 'k' : 's';
+        } else if (/true|false/.test(match)){
+          cls = 'b';
+        } else if (/null/.test(match)){
+          cls = 'z';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      }
+    );
+  }
+
+  // ---------- Tulip trigger semantics ----------
+
+  function buildVariableMap(data){
+    const map = {};
+    (data.variables || []).forEach(function(v){
+      map[v._id] = v.name || v._id;
+    });
+    return map;
+  }
+
+  // friendly=true renders booleans as yes/no, matching Tulip's own "Static value" chip
+  // (confirmed against a real trigger). Nested expression text keeps true/false since
+  // that's rendered as code-like syntax inside the dark expression pills — unconfirmed
+  // either way, but kept distinct until a counter-example shows up.
+  function formatStaticValue(value, baseType, friendly){
+    if (value === null || value === undefined) return 'null';
+    if (baseType === 'string') return "'" + String(value).replace(/'/g, "\\'") + "'";
+    if (baseType === 'boolean') return friendly ? (value ? 'yes' : 'no') : String(value);
+    return String(value);
+  }
+
+  // renders a Field/StaticValue/Function AST node (from inside exprStr) to text.
+  // Field nodes always render as "Variable.Name[.path]"
+  const INFIX_OPS = new Set(['+', '-', '*', '/', '==', '!=', '<', '>', '<=', '>=', 'and', 'or', '&&', '||']);
+
+  function renderExprNode(node, varMap){
+    if (!node || typeof node !== 'object') return String(node);
+
+    if (node.type === 'StaticValue'){
+      return formatStaticValue(node.value, node.valueType);
+    }
+
+    if (node.type === 'Field'){
+      const opts = node.opts || {};
+      const varId = opts.variableId;
+      const name = varMap[varId] || varId || '(unknown var)';
+      const path = Array.isArray(opts.path) ? opts.path : [];
+      return 'Variable.' + name + (path.length ? '.' + path.join('.') : '');
+    }
+
+    if (node.type === 'Function'){
+      const args = (node.arguments || []).map(function(a){ return renderExprNode(a, varMap); });
+      if (INFIX_OPS.has(node.name) && args.length >= 2){
+        return args.join(' ' + node.name + ' ');
+      }
+      return String(node.name || 'FN').toUpperCase() + '(' + args.join(', ') + ')';
+    }
+
+    // unknown node shape — surface it rather than hiding it
+    return '⚠(' + esc(JSON.stringify(node)) + ')';
+  }
+
+  function renderExprString(exprStr, varMap){
+    try {
+      const node = JSON.parse(exprStr);
+      return renderExprNode(node, varMap);
+    } catch (e) {
+      return '⚠ could not parse expression: ' + esc(exprStr);
+    }
+  }
+
+  // resolves a top-level input_value entry to { badgeClass, badgeLabel, text }.
+  // Confirmed against real triggers: when a variable has a path (e.g. a field on a
+  // record-shaped variable), the dropdown shows only the leaf path, not "Name.path".
+  function resolveTopLevel(iv, varMap){
+    if (!iv || typeof iv !== 'object'){
+      return { badgeClass: 'static', badgeLabel: 'Static value', text: String(iv) };
+    }
+    const dsType = iv.datasourceType;
+
+    if (dsType === 'variable'){
+      const name = varMap[iv.variableId] || iv.variableId || '(unknown var)';
+      const path = Array.isArray(iv.path) ? iv.path : [];
+      return {
+        badgeClass: 'variable',
+        badgeLabel: 'Variable',
+        text: path.length ? path.join('.') : name
+      };
+    }
+
+    if (dsType === 'static'){
+      const baseType = iv.valueType && iv.valueType.baseType;
+      return { badgeClass: 'static', badgeLabel: 'Static value', text: formatStaticValue(iv.value, baseType, true) };
+    }
+
+    if (dsType === 'expr'){
+      return { badgeClass: 'expr', badgeLabel: 'Expression', text: renderExprString(iv.exprStr, varMap) };
+    }
+
+    return { badgeClass: 'static', badgeLabel: dsType || 'Unknown', text: JSON.stringify(iv) };
+  }
+
+  // ---------- action / condition / event lookup tables ----------
+
+  const ACTION_SPECS = {
+    store_in_var: {
+      category: 'Data Manipulation',
+      subtype: 'Store',
+      params: [
+        { label: 'data', idx: 0 },
+        { label: 'location', idx: 1 }
+      ]
+    },
+    array_get_at_index: {
+      category: 'Arrays',
+      subtype: 'Get from index in Array',
+      params: [
+        { label: 'array', idx: 0 },
+        { label: 'index', idx: 1 },
+        { label: 'store in variable', idx: 2 }
+      ]
+    }
+  };
+
+  // arity: how many operands the condition pill row shows, and where the operator
+  // badge sits (after the single operand for arity 1, between operands for arity 2).
+  // Only is_false is confirmed against a screenshot; the rest are reasonable guesses
+  // pending real examples.
+  const CONDITION_SPECS = {
+    is_false:      { operatorLabel: 'Is False', arity: 1 },
+    is_true:       { operatorLabel: 'Is True',  arity: 1 },
+    equals:        { operatorLabel: '=',         arity: 2 },
+    not_equals:    { operatorLabel: '≠',         arity: 2 },
+    greater_than:  { operatorLabel: '>',         arity: 2 },
+    less_than:     { operatorLabel: '<',         arity: 2 }
+  };
+
+  // category determines whether this trigger needs a parent_widget: widget-level
+  // events (button press, row select, etc.) are attached to a specific widget;
+  // step-level events (step opened, etc.) attach directly to the step and never
+  // carry parent_widget. Confirmed via two real triggers with identical bodies
+  // differing only in event.type + presence/absence of parent_widget.
+  const EVENT_TYPE_REGISTRY = {
+    button_press:        { label: 'button pressed',        category: 'widget', confirmed: true },
+    row_select:          { label: 'a row is selected',     category: 'widget', confirmed: true },
+    custom_widget_event: { label: 'custom widget event',   category: 'widget', confirmed: true },
+    click:               { label: 'clicked',                category: 'widget', confirmed: false },
+    change:              { label: 'value changes',          category: 'widget', confirmed: false },
+    step_open:           { label: 'step is opened',        category: 'step',   confirmed: true }
+  };
+
+  // Some event types carry extra identifiers on event itself (not on the
+  // trigger) that also have to change when retargeting to a different
+  // widget. Confirmed for custom_widget_event: two real triggers pointing at
+  // different custom widget *types* differed in event.customWidgetId (and
+  // parent_widget) — event.eventName happened to match in that pair, but
+  // there's no guarantee it will for an arbitrary pair of widget types, so
+  // it's exposed as editable too rather than assumed stable.
+  const EVENT_EXTRA_FIELDS = {
+    custom_widget_event: [
+      { key: 'customWidgetId', label: 'custom widget type ID' },
+      { key: 'eventName',      label: 'event name ID' }
+    ]
+  };
+
+  function describeEvent(event){
+    if (!event) return '(no event)';
+    const reg = EVENT_TYPE_REGISTRY[event.type];
+    return reg ? reg.label : event.type.replace(/_/g, ' ');
+  }
+
+  function eventCategory(type){
+    const reg = EVENT_TYPE_REGISTRY[type];
+    return reg ? reg.category : 'widget'; // unknown types default to the safer/more-common case
+  }
+
+  function appendChip(row, cls, label){
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = label;
+    row.appendChild(span);
+  }
+
+  function makeToggleBtn(mode, onClick){
+    const btn = document.createElement('button');
+    btn.className = 'code-toggle';
+    btn.type = 'button';
+    btn.textContent = mode === 'code' ? 'pills' : '</>';
+    btn.title = mode === 'code' ? 'back to pill view' : 'edit as code';
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  // Generic collapse chevron: toggles bodyEl's visibility, flips its own
+  // rotation, and shows/hides a summaryEl (if given) in the collapsed state.
+  function makeChevron(hideEls, summaryEl, startCollapsed){
+    const els = Array.isArray(hideEls) ? hideEls : [hideEls];
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.textContent = '▾';
+
+    function apply(collapsed){
+      els.forEach(function(el){ el.style.display = collapsed ? 'none' : ''; });
+      chevron.classList.toggle('collapsed', collapsed);
+      if (summaryEl) summaryEl.style.display = collapsed ? 'block' : 'none';
+    }
+    chevron.addEventListener('click', function(){
+      apply(els[0].style.display !== 'none');
+    });
+    apply(!!startCollapsed);
+    return chevron;
+  }
+
+  function buildCodeEditor(initialText, onApply){
+    const wrap = document.createElement('div');
+    wrap.className = 'code-edit';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'code-input';
+    input.value = initialText;
+    input.spellcheck = false;
+
+    const errorEl = document.createElement('div');
+    errorEl.className = 'code-error';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'code-save';
+    saveBtn.type = 'button';
+    saveBtn.textContent = 'apply';
+
+    function commit(){
+      try {
+        onApply(input.value);
+        // on success the caller triggers a full re-render, which replaces
+        // this row entirely — nothing further to do here.
+      } catch (e){
+        errorEl.textContent = e.message;
+        errorEl.classList.add('show');
+      }
+    }
+    saveBtn.addEventListener('click', commit);
+    input.addEventListener('keydown', function(ev){ if (ev.key === 'Enter'){ ev.preventDefault(); commit(); } });
+
+    const row1 = document.createElement('div');
+    row1.className = 'code-edit-row';
+    row1.appendChild(input);
+    row1.appendChild(saveBtn);
+    wrap.appendChild(row1);
+    wrap.appendChild(errorEl);
+
+    setTimeout(function(){ input.focus(); input.setSelectionRange(input.value.length, input.value.length); }, 0);
+    return wrap;
+  }
+
+  function renderConditionRowBody(row, cond, ctx, mode){
+    row.innerHTML = '';
+    const toggle = makeToggleBtn(mode, function(){
+      renderConditionRowBody(row, cond, ctx, mode === 'code' ? 'view' : 'code');
+    });
+
+    if (mode === 'code'){
+      row.classList.add('editing');
+      row.appendChild(toggle);
+      row.appendChild(buildCodeEditor(conditionToCode(cond, ctx.nameById), function(text){
+        const parsed = parseConditionCode(text, ctx.nameToId);
+        cond.type = parsed.type;
+        cond.input_values = parsed.input_values_nodes.map(function(n){ return nodeToIv(n, ctx.data); });
+        ctx.afterEdit();
+      }));
+      return;
+    }
+
+    row.classList.remove('editing');
+    const spec = CONDITION_SPECS[cond.type];
+    const vals = (cond.input_values || []).map(function(iv){ return resolveTopLevel(iv, ctx.nameById); });
+
+    const chipsWrap = document.createElement('span');
+    chipsWrap.className = 'cond-chips';
+
+    function operand(v){
+      appendChip(chipsWrap, 'param-type ' + v.badgeClass, v.badgeLabel);
+      appendChip(chipsWrap, 'param-value inline', v.text);
+    }
+
+    let operatorLabel = cond.type;
+    if (spec && spec.arity === 1 && vals.length >= 1){
+      operand(vals[0]);
+      appendChip(chipsWrap, 'param-type op', spec.operatorLabel);
+      operatorLabel = spec.operatorLabel;
+    } else if (spec && spec.arity === 2 && vals.length >= 2){
+      operand(vals[0]);
+      appendChip(chipsWrap, 'param-type op', spec.operatorLabel);
+      operand(vals[1]);
+      operatorLabel = spec.operatorLabel;
+    } else {
+      appendChip(chipsWrap, 'badge badge-warn', 'unmapped: ' + cond.type);
+      vals.forEach(operand);
+    }
+
+    const summary = document.createElement('span');
+    summary.className = 'cond-summary';
+    summary.textContent = (vals[0] ? vals[0].text : '?') + ' ' + operatorLabel;
+
+    const chevron = makeChevron(chipsWrap, summary, false);
+    row.appendChild(chevron);
+    row.appendChild(chipsWrap);
+    row.appendChild(summary);
+    row.appendChild(toggle);
+  }
+
+  function buildConditionRow(cond, ctx){
+    const row = document.createElement('div');
+    row.className = 'cond-row';
+    renderConditionRowBody(row, cond, ctx, 'view');
+    return row;
+  }
+
+  function renderActionRowBody(row, action, ctx, mode){
+    row.innerHTML = '';
+    const toggle = makeToggleBtn(mode, function(){
+      renderActionRowBody(row, action, ctx, mode === 'code' ? 'view' : 'code');
+    });
+
+    if (mode === 'code'){
+      row.classList.add('editing');
+      row.appendChild(toggle);
+      row.appendChild(buildCodeEditor(actionToCode(action, ctx.nameById), function(text){
+        const parsed = parseActionCode(text, ctx.nameToId);
+        if (parsed.rawType !== undefined){
+          action.type = parsed.rawType;
+          action.input_values = parsed.argNodes.map(function(n){ return nodeToIv(n, ctx.data); });
+        } else if (parsed.arraySugar){
+          action.type = 'array_get_at_index';
+          action.input_values = [
+            nodeToIv(parsed.array, ctx.data),
+            nodeToIv(parsed.index, ctx.data),
+            nodeToIv(parsed.target, ctx.data)
+          ];
+        } else {
+          action.type = 'store_in_var';
+          action.input_values = [
+            nodeToIv(parsed.data, ctx.data),
+            nodeToIv(parsed.target, ctx.data)
+          ];
+        }
+        ctx.afterEdit();
+      }));
+      return;
+    }
+
+    row.classList.remove('editing');
+    const spec = ACTION_SPECS[action.type];
+    const badges = document.createElement('div');
+    badges.className = 'action-badges';
+
+    if (spec){
+      badges.innerHTML =
+        '<span class="badge badge-cat">' + esc(spec.category) + '</span>' +
+        '<span class="badge badge-sub">' + esc(spec.subtype) + '</span>';
+    } else {
+      badges.innerHTML =
+        '<span class="badge badge-warn">unmapped type</span>' +
+        '<span class="badge badge-sub">' + esc(action.type || 'unknown') + '</span>';
+    }
+
+    const body = document.createElement('div');
+    body.className = 'action-row-body';
+
+    const inputValues = action.input_values || [];
+    const paramDefs = spec ? spec.params : inputValues.map(function(_, i){ return { label: 'input ' + (i + 1), idx: i }; });
+
+    paramDefs.forEach(function(p){
+      const iv = inputValues[p.idx];
+      if (iv === undefined) return;
+      const resolved = resolveTopLevel(iv, ctx.nameById);
+
+      const pr = document.createElement('div');
+      pr.className = 'param-row';
+      pr.innerHTML =
+        '<span class="param-label">' + esc(p.label) + ':</span>' +
+        '<span class="param-type ' + resolved.badgeClass + '">' + esc(resolved.badgeLabel) + '</span>' +
+        '<span class="param-value">' + esc(resolved.text) + '</span>';
+      body.appendChild(pr);
+    });
+
+    if (!spec){
+      const warn = document.createElement('div');
+      warn.className = 'warn-note';
+      warn.textContent = 'Action type "' + action.type + '" isn\'t in the known table yet — showing raw input_values positionally. Paste a matching Tulip screenshot and the mapping can be added.';
+      body.appendChild(warn);
+    }
+
+    const firstParam = body.querySelector('.param-value');
+    const summary = document.createElement('div');
+    summary.className = 'action-summary';
+    summary.textContent = (spec ? spec.subtype : (action.type || 'action')) + (firstParam ? (': ' + firstParam.textContent) : '');
+
+    const headerRow = document.createElement('div');
+    headerRow.className = 'action-header-row';
+    const chevron = makeChevron([badges, body], summary, false);
+    headerRow.appendChild(chevron);
+    headerRow.appendChild(badges);
+    headerRow.appendChild(summary);
+    headerRow.appendChild(toggle);
+
+    row.appendChild(headerRow);
+    row.appendChild(body);
+  }
+
+  function buildActionRow(action, ctx){
+    const row = document.createElement('div');
+    row.className = 'action-row';
+    renderActionRowBody(row, action, ctx, 'view');
+    return row;
+  }
+
+  function buildClauseBlock(clause, ctx, clauseIndex, isMultiClause){
+    const wrap = document.createElement('div');
+    wrap.className = 'clause';
+
+    const conditions = clause.conditions || [];
+    const actions = clause.actions || [];
+
+    const headerRow = document.createElement('div');
+    headerRow.className = 'clause-header-row';
+
+    const head = document.createElement('div');
+    head.className = 'clause-head';
+    const quantifier = clause.type === 'or' ? 'any' : 'all';
+    const ifWord = clauseIndex === 0 ? 'If' : 'Else if';
+    head.innerHTML = ifWord + ' <b>' + quantifier + '</b> of the following conditions are met:';
+
+    const summary = document.createElement('div');
+    summary.className = 'clause-summary';
+    summary.textContent = ifWord + ' — ' + conditions.length + ' condition' + (conditions.length !== 1 ? 's' : '') +
+      ', ' + actions.length + ' action' + (actions.length !== 1 ? 's' : '');
+
+    const body = document.createElement('div');
+    body.className = 'clause-body';
+
+    if (!conditions.length){
+      const empty = document.createElement('div');
+      empty.className = 'empty-note';
+      empty.textContent = '(no conditions — this branch always runs)';
+      body.appendChild(empty);
+    } else {
+      conditions.forEach(function(cond){
+        body.appendChild(buildConditionRow(cond, ctx));
+      });
+    }
+
+    const thenHead = document.createElement('div');
+    thenHead.className = 'then-head';
+    thenHead.textContent = 'Then perform the following actions:';
+    body.appendChild(thenHead);
+
+    if (!actions.length){
+      const empty = document.createElement('div');
+      empty.className = 'empty-note';
+      empty.textContent = '(no actions)';
+      body.appendChild(empty);
+    } else {
+      actions.forEach(function(action){
+        body.appendChild(buildActionRow(action, ctx));
+      });
+    }
+
+    const chevron = makeChevron([head, body], summary, false);
+    headerRow.appendChild(chevron);
+    headerRow.appendChild(head);
+    headerRow.appendChild(summary);
+
+    wrap.appendChild(headerRow);
+    wrap.appendChild(body);
+
+    return wrap;
+  }
+
+  function buildTriggerCard(trigger, ctx){
+    const card = document.createElement('div');
+    card.className = 'trig-card';
+
+    const head = document.createElement('div');
+    head.className = 'trig-head';
+
+    const desc = document.createElement('div');
+    if (trigger.description && trigger.description.trim()){
+      desc.className = 'trig-desc';
+      desc.textContent = trigger.description;
+    } else {
+      desc.className = 'trig-desc placeholder';
+      desc.textContent = '(no description)';
+    }
+    head.appendChild(desc);
+
+    const eventLine = document.createElement('div');
+    eventLine.className = 'trig-event trig-event-editor';
+
+    const whenLabel = document.createElement('span');
+    whenLabel.textContent = 'When: ';
+    eventLine.appendChild(whenLabel);
+
+    const select = document.createElement('select');
+    select.className = 'event-select';
+    const knownTypes = Object.keys(EVENT_TYPE_REGISTRY);
+    if (knownTypes.indexOf(trigger.event.type) === -1){
+      const customOpt = document.createElement('option');
+      customOpt.value = trigger.event.type;
+      customOpt.textContent = trigger.event.type + ' (unrecognized — kept as-is)';
+      select.appendChild(customOpt);
+    }
+    const widgetGroup = document.createElement('optgroup');
+    widgetGroup.label = 'Widget events';
+    const stepGroup = document.createElement('optgroup');
+    stepGroup.label = 'Step events';
+    knownTypes.forEach(function(type){
+      const reg = EVENT_TYPE_REGISTRY[type];
+      const opt = document.createElement('option');
+      opt.value = type;
+      opt.textContent = reg.label + (reg.confirmed ? '' : ' (unconfirmed)');
+      (reg.category === 'step' ? stepGroup : widgetGroup).appendChild(opt);
+    });
+    select.appendChild(widgetGroup);
+    select.appendChild(stepGroup);
+    select.value = trigger.event.type;
+
+    const widgetIdWrap = document.createElement('span');
+    widgetIdWrap.className = 'widget-id-wrap';
+    const widgetIdLabel = document.createElement('span');
+    widgetIdLabel.className = 'widget-id-label';
+    widgetIdLabel.textContent = 'widget:';
+    const widgetIdInput = document.createElement('input');
+    widgetIdInput.type = 'text';
+    widgetIdInput.className = 'widget-id-input';
+    widgetIdInput.placeholder = '(paste target widget ID)';
+    widgetIdInput.value = trigger.parent_widget || '';
+    widgetIdWrap.appendChild(widgetIdLabel);
+    widgetIdWrap.appendChild(widgetIdInput);
+
+    // extra event-scoped fields (e.g. customWidgetId / eventName for
+    // custom_widget_event) — rebuilt fresh for whichever type is selected.
+    const extraFieldsWrap = document.createElement('span');
+    extraFieldsWrap.className = 'widget-id-wrap extra-fields-wrap';
+
+    function buildExtraFields(){
+      extraFieldsWrap.innerHTML = '';
+      if (trigger.event.type !== 'custom_widget_event') return;
+
+      const cwid = trigger.event.customWidgetId;
+      const evtName = trigger.event.eventName;
+
+      if (cwid && evtName){
+        const chip = document.createElement('span');
+        chip.className = 'capture-chip';
+        chip.title = 'custom widget type: ' + cwid + '\nevent name: ' + evtName;
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'rename-label';
+        const currentLabel = captureLabelMap.get(trigger) || (cwid.slice(0, 8) + '… / ' + evtName.slice(0, 8) + '…');
+        labelSpan.textContent = 'target: ' + currentLabel;
+        labelSpan.title = 'click to rename';
+        labelSpan.addEventListener('click', function(e){
+          e.stopPropagation();
+          startInlineRename(labelSpan, currentLabel, function(newLabel){ renameTarget(trigger, newLabel); });
+        });
+        chip.appendChild(labelSpan);
+
+        const pencil = document.createElement('span');
+        pencil.className = 'pencil';
+        pencil.title = 'recapture IDs';
+        pencil.textContent = '✎';
+        pencil.addEventListener('click', function(e){
+          e.stopPropagation();
+          openWidgetCaptureModal(trigger, ctx);
+        });
+        chip.appendChild(pencil);
+
+        extraFieldsWrap.appendChild(chip);
+      } else {
+        const captureBtn = document.createElement('button');
+        captureBtn.type = 'button';
+        captureBtn.className = 'capture-btn';
+        captureBtn.textContent = 'capture target…';
+        captureBtn.addEventListener('click', function(){
+          openWidgetCaptureModal(trigger, ctx);
+        });
+        extraFieldsWrap.appendChild(captureBtn);
+      }
+    }
+    buildExtraFields();
+
+    function syncWidgetVisibility(){
+      const cat = eventCategory(select.value);
+      widgetIdWrap.style.display = cat === 'widget' ? '' : 'none';
+    }
+    syncWidgetVisibility();
+
+    select.addEventListener('change', function(){
+      const oldType = trigger.event.type;
+      const newType = select.value;
+      // drop extra fields that belonged to the old type but aren't part of
+      // the new type's spec, so stale identifiers don't linger silently
+      const oldExtras = EVENT_EXTRA_FIELDS[oldType] || [];
+      const newExtraKeys = (EVENT_EXTRA_FIELDS[newType] || []).map(function(s){ return s.key; });
+      oldExtras.forEach(function(spec){
+        if (newExtraKeys.indexOf(spec.key) === -1) delete trigger.event[spec.key];
+      });
+
+      trigger.event.type = newType;
+      const cat = eventCategory(newType);
+      if (cat === 'step'){
+        delete trigger.parent_widget;
+      } else if (!trigger.parent_widget && widgetIdInput.value.trim()){
+        trigger.parent_widget = widgetIdInput.value.trim();
+      }
+      syncWidgetVisibility();
+      ctx.afterEdit();
+    });
+
+    widgetIdInput.addEventListener('change', function(){
+      const v = widgetIdInput.value.trim();
+      if (v) trigger.parent_widget = v; else delete trigger.parent_widget;
+      ctx.afterEdit();
+    });
+
+    eventLine.appendChild(select);
+    eventLine.appendChild(widgetIdWrap);
+    eventLine.appendChild(extraFieldsWrap);
+
+    if (triggerWhenChanged(trigger)){
+      eventLine.classList.add('when-changed');
+      const badge = document.createElement('span');
+      badge.className = 'when-changed-badge';
+      badge.textContent = 'changed from source';
+      eventLine.appendChild(badge);
+    }
+
+    head.appendChild(eventLine);
+
+    const missingExtras = (EVENT_EXTRA_FIELDS[trigger.event.type] || []).filter(function(spec){ return !trigger.event[spec.key]; });
+    if (eventCategory(trigger.event.type) === 'widget' && (!trigger.parent_widget || missingExtras.length)){
+      const missingParts = [];
+      if (!trigger.parent_widget) missingParts.push('widget ID');
+      missingExtras.forEach(function(spec){ missingParts.push(spec.label); });
+      const warn = document.createElement('div');
+      warn.className = 'warn-note';
+      warn.style.margin = '6px 0 0';
+      warn.textContent = 'Widget-level events need a matching ' + missingParts.join(', ') + ' for Tulip to paste this cleanly onto the target widget — supply ' + (missingParts.length > 1 ? 'them' : 'it') + ' above if you have ' + (missingParts.length > 1 ? 'them' : 'it') + ' (e.g. by decoding another trigger already on the target widget), or fix it up after pasting.';
+      head.appendChild(warn);
+    }
+
+    card.appendChild(head);
+
+    const clauses = trigger.clauses || [];
+    if (clauses.length > 1){
+      const note = document.createElement('div');
+      note.className = 'trig-event';
+      note.style.padding = '8px 16px 0';
+      note.textContent = 'Clauses run top-to-bottom — only the first whose conditions match executes its actions.';
+      card.appendChild(note);
+    }
+
+    clauses.forEach(function(clause, i){
+      card.appendChild(buildClauseBlock(clause, ctx, i, clauses.length > 1));
+    });
+
+    return card;
+  }
+
+  // Two different Tulip clipboard trigger schemas have now been seen: the
+  // original (trigger._id, action.input_values, event.type snake_case) and a
+  // newer one (trigger.id, action.inputs nested under .params, event type
+  // hyphenated, isTransition camelCase). The renderer below only understands
+  // the original — rather than silently mis-rendering a newer-schema trigger
+  // (missing fields, blank actions), detect it and show an honest notice
+  // instead.
+  function isNewSchemaTrigger(trigger){
+    return trigger._id === undefined && trigger.id !== undefined;
+  }
+
+  function buildUnsupportedTriggerCard(trigger){
+    const card = document.createElement('div');
+    card.className = 'trig-card';
+    const head = document.createElement('div');
+    head.className = 'trig-head';
+    const desc = document.createElement('div');
+    desc.className = 'trig-desc';
+    desc.textContent = trigger.name || trigger.description || '(untitled trigger)';
+    head.appendChild(desc);
+    const warn = document.createElement('div');
+    warn.className = 'warn-note';
+    warn.style.margin = '8px 0 0';
+    warn.textContent = 'This trigger uses a newer/different Tulip clipboard schema (id instead of _id, action.inputs instead of input_values, etc.) that this tool doesn\'t parse yet — showing raw JSON for this trigger instead of misrendering it. Ask for schema-v2 support to be added if you need this rendered properly.';
+    head.appendChild(warn);
+    card.appendChild(head);
+    const pre = document.createElement('pre');
+    pre.style.margin = '0';
+    pre.style.padding = '12px 16px';
+    pre.style.borderTop = '1px solid var(--panel-edge-soft)';
+    pre.style.fontSize = '11.5px';
+    pre.style.maxHeight = '260px';
+    pre.style.overflow = 'auto';
+    pre.innerHTML = syntaxHighlight(JSON.stringify(trigger, null, 2));
+    card.appendChild(pre);
+    return card;
+  }
+
+  // ---------- widget rendering (currently: table column widths) ----------
+
+  function buildColumnRow(widget, field, ctx){
+    const row = document.createElement('div');
+    row.className = 'param-row';
+
+    const label = document.createElement('span');
+    label.className = 'param-label';
+    label.textContent = field + ':';
+    row.appendChild(label);
+
+    const badge = document.createElement('span');
+    badge.className = 'param-type variable';
+    badge.textContent = 'width (px)';
+    row.appendChild(badge);
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '1'; // deliberately no higher floor — the whole point is overriding Tulip's own UI-enforced minimum
+    input.className = 'widget-id-input';
+    input.style.width = '90px';
+    const current = widget.columnWidths && widget.columnWidths[field];
+    input.value = (current !== undefined && current !== null) ? current : '';
+    input.placeholder = '(auto)';
+    input.addEventListener('change', function(){
+      const v = input.value.trim();
+      if (!widget.columnWidths) widget.columnWidths = {};
+      if (v === ''){
+        delete widget.columnWidths[field];
+      } else {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n <= 0){
+          input.value = (current !== undefined && current !== null) ? current : '';
+          return;
+        }
+        widget.columnWidths[field] = n;
+      }
+      ctx.afterEdit();
+    });
+    row.appendChild(input);
+
+    return row;
+  }
+
+  function buildWidgetCard(widget, ctx){
+    const card = document.createElement('div');
+    card.className = 'trig-card';
+
+    const head = document.createElement('div');
+    head.className = 'trig-head';
+    const desc = document.createElement('div');
+    desc.className = 'trig-desc';
+    desc.textContent = (widget.name || (widget.type ? (widget.type + ' widget') : 'widget'));
+    head.appendChild(desc);
+    const sub = document.createElement('div');
+    sub.className = 'trig-event';
+    sub.textContent = 'id: ' + (widget._id || widget.id || '(unknown)');
+    head.appendChild(sub);
+    card.appendChild(head);
+
+    if (widget.type === 'table' && Array.isArray(widget.visibleFields) && widget.visibleFields.length){
+      const body = document.createElement('div');
+      body.className = 'clause';
+      const columnsHead = document.createElement('div');
+      columnsHead.className = 'clause-head';
+      columnsHead.innerHTML = 'Columns <span style="color:var(--text-dim);font-style:italic;font-weight:400;">(in display order — widths override Tulip\'s own UI-enforced minimum)</span>';
+      body.appendChild(columnsHead);
+      widget.visibleFields.forEach(function(field){
+        body.appendChild(buildColumnRow(widget, field, ctx));
+      });
+      card.appendChild(body);
+    }
+
+    return card;
+  }
+
+  function renderLowCode(data){
+    currentData = data;
+    lowcodeOutput.innerHTML = '';
+    const nameById = buildVariableMap(data);          // id -> name (for display)
+    const nameToId = buildNameToIdMap(data.variables); // name -> id (for parsing)
+    const triggers = data.triggers || [];
+    const widgets = data.widgets || [];
+
+    const ctx = {
+      data: data,
+      nameById: nameById,
+      nameToId: nameToId,
+      afterEdit: refreshView
+    };
+
+    if (!triggers.length && !widgets.length){
+      const empty = document.createElement('div');
+      empty.className = 'empty-note';
+      empty.style.margin = '4px 0';
+      empty.textContent = 'No triggers or widgets found in this payload.';
+      lowcodeOutput.appendChild(empty);
+      return;
+    }
+
+    widgets.forEach(function(widget){
+      lowcodeOutput.appendChild(buildWidgetCard(widget, ctx));
+    });
+
+    triggers.forEach(function(trigger){
+      lowcodeOutput.appendChild(isNewSchemaTrigger(trigger) ? buildUnsupportedTriggerCard(trigger) : buildTriggerCard(trigger, ctx));
+    });
+  }
+
+  // ---------- summary chips ----------
+
+  function summarize(data){
+    const chips = [];
+    if (Array.isArray(data.triggers)) chips.push(['triggers', data.triggers.length]);
+    if (Array.isArray(data.widgets)) chips.push(['widgets', data.widgets.length]);
+    if (Array.isArray(data.variables)) chips.push(['variables', data.variables.length]);
+    if (data.sourceCustomer) chips.push(['source', data.sourceCustomer]);
+    if (data.sourceAppId) chips.push(['app', data.sourceAppId]);
+    if (!chips.length) return;
+    summaryEl.innerHTML = chips.map(function(c){
+      return '<span class="chip">' + c[0] + ' <b>' + c[1] + '</b></span>';
+    }).join('');
+    summaryEl.classList.add('show');
+  }
+
+  // ---------- tab / view plumbing ----------
+
+  let rawEditActive = false;
+  let lowcodeWasEnabledBeforeEdit = true;
+
+  function switchTab(name){
+    if (name === 'lowcode'){
+      if (rawEditActive) return; // locked out until apply/cancel resolves the in-progress edit
+      lowcodeOutput.classList.add('show');
+      output.classList.remove('show');
+      rawEditWrap.classList.remove('show');
+      tabLowcode.classList.add('active');
+      tabRaw.classList.remove('active');
+    } else {
+      lowcodeOutput.classList.remove('show');
+      tabRaw.classList.add('active');
+      tabLowcode.classList.remove('active');
+      if (rawEditActive){
+        output.classList.remove('show');
+        rawEditWrap.classList.add('show');
+      } else {
+        output.classList.add('show');
+        rawEditWrap.classList.remove('show');
+      }
+    }
+  }
+
+  function enableLowcodeTab(enabled){
+    tabLowcode.disabled = !enabled;
+  }
+
+  tabLowcode.addEventListener('click', function(){ if (!tabLowcode.disabled) switchTab('lowcode'); });
+  tabRaw.addEventListener('click', function(){ switchTab('raw'); });
+
+  // ---------- raw-edit mode ----------
+
+  function validateRawEditLive(){
+    const text = rawEditArea.value;
+    try {
+      JSON.parse(text);
+      rawEditStatus.textContent = 'valid JSON';
+      rawEditStatus.className = 'raw-edit-status ok';
+      return true;
+    } catch (e){
+      rawEditStatus.textContent = 'invalid JSON: ' + e.message;
+      rawEditStatus.className = 'raw-edit-status err';
+      return false;
+    }
+  }
+
+  function enterRawEditMode(){
+    if (!currentData && !lastJsonText) return;
+    rawEditActive = true;
+    lowcodeWasEnabledBeforeEdit = !tabLowcode.disabled;
+    rawEditArea.value = lastJsonText;
+    rawEditToggle.textContent = '✎ editing…';
+    rawEditToggle.classList.add('active');
+    enableLowcodeTab(false);
+    switchTab('raw');
+    validateRawEditLive();
+    setTimeout(function(){ rawEditArea.focus(); }, 0);
+  }
+
+  // wasValid controls whether we restore the low-code tab afterward — a
+  // successful apply re-checks it itself; cancel just goes back to whatever
+  // was working before.
+  function exitRawEditMode(restoreLowcodeTab){
+    rawEditActive = false;
+    rawEditToggle.textContent = '✎ enable raw edit';
+    rawEditToggle.classList.remove('active');
+    rawEditStatus.textContent = '';
+    rawEditStatus.className = 'raw-edit-status';
+    if (restoreLowcodeTab) enableLowcodeTab(true);
+    switchTab(restoreLowcodeTab ? 'lowcode' : 'raw');
+  }
+
+  function applyRawEdit(){
+    let parsed;
+    try {
+      parsed = JSON.parse(rawEditArea.value);
+    } catch (e){
+      rawEditStatus.textContent = 'invalid JSON — not applied: ' + e.message;
+      rawEditStatus.className = 'raw-edit-status err';
+      return;
+    }
+    currentData = parsed;
+    const pretty = JSON.stringify(parsed, null, 2);
+    lastJsonText = pretty;
+    output.innerHTML = syntaxHighlight(pretty);
+
+    let lowcodeOk = true;
+    try {
+      renderLowCode(parsed);
+    } catch (e) {
+      lowcodeOk = false;
+      setStatus('applied, but low-code rendering hit an error on this structure: ' + e.message, 'err');
+    }
+    exitRawEditMode(lowcodeOk);
+  }
+
+  function revertRawEdit(){
+    rawEditArea.value = lastJsonText;
+    validateRawEditLive();
+  }
+
+  rawEditToggle.addEventListener('click', function(){
+    if (rawEditActive) return;
+    enterRawEditMode();
+  });
+  rawApplyBtn.addEventListener('click', applyRawEdit);
+  rawRevertBtn.addEventListener('click', revertRawEdit);
+  rawCancelBtn.addEventListener('click', function(){ exitRawEditMode(lowcodeWasEnabledBeforeEdit); });
+  rawEditArea.addEventListener('input', validateRawEditLive);
+
+  function showRawOnly(text){
+    lastJsonText = text;
+    output.innerHTML = syntaxHighlight(text);
+    lowcodeOutput.innerHTML = '';
+    toolbar.classList.add('show');
+    enableLowcodeTab(false);
+    switchTab('raw');
+  }
+
+  function showDecoded(dataObj, prettyText){
+    lastJsonText = prettyText;
+    output.innerHTML = syntaxHighlight(prettyText);
+    toolbar.classList.add('show');
+    try {
+      renderLowCode(dataObj);
+      enableLowcodeTab(true);
+      switchTab('lowcode');
+    } catch (e) {
+      enableLowcodeTab(false);
+      switchTab('raw');
+      setStatus('decoded, but low-code rendering hit an error: ' + e.message, 'err');
+    }
+  }
+
+  function reset(){
+    if (rawEditActive){
+      rawEditActive = false;
+      rawEditToggle.textContent = '✎ enable raw edit';
+      rawEditToggle.classList.remove('active');
+      rawEditStatus.textContent = '';
+      rawEditStatus.className = 'raw-edit-status';
+    }
+    rawEditWrap.classList.remove('show');
+    rawEditArea.value = '';
+    output.classList.remove('show');
+    lowcodeOutput.classList.remove('show');
+    toolbar.classList.remove('show');
+    summaryEl.classList.remove('show');
+    summaryEl.innerHTML = '';
+    output.innerHTML = '';
+    lowcodeOutput.innerHTML = '';
+    lastJsonText = '';
+    setStatus('');
+  }
+
+  function applyPersistedTargetOnDecode(data){
+    (data.triggers || []).forEach(function(trigger){
+      // snapshot BEFORE any auto-apply mutation, so the changed-highlight
+      // correctly reflects "differs from what was actually in the clipboard"
+      snapshotTriggerWhen(trigger);
+      if (globalWidgetTarget && trigger.event && trigger.event.type === 'custom_widget_event'){
+        trigger.event.customWidgetId = globalWidgetTarget.customWidgetId;
+        trigger.event.eventName = globalWidgetTarget.eventName;
+        captureLabelMap.set(trigger, globalWidgetTarget.label);
+      }
+    });
+  }
+
+  function handleHtmlFragment(html){
+    if (rawEditActive){
+      rawEditActive = false;
+      rawEditToggle.textContent = '✎ enable raw edit';
+      rawEditToggle.classList.remove('active');
+    }
+    const match = html.match(/data-tulip-clipboard="([^"]+)"/);
+    if (!match){
+      setStatus('no data-tulip-clipboard attribute found — showing raw HTML fragment instead', 'err');
+      showRawOnly(html);
+      return;
+    }
+    const b64 = decodeEntities(match[1]);
+    try {
+      const jsonStr = decodeURIComponent(escape(atob(b64)));
+      const data = JSON.parse(jsonStr);
+      applyPersistedTargetOnDecode(data);
+      const pretty = JSON.stringify(data, null, 2);
+      setStatus('decoded ' + pretty.length + ' characters of trigger/widget config', 'ok');
+      summarize(data);
+      showDecoded(data, pretty);
+    } catch (e) {
+      setStatus('found the attribute but could not decode it: ' + e.message, 'err');
+      showRawOnly(b64);
+    }
+  }
+
+  dropzone.addEventListener('paste', function(e){
+    e.preventDefault();
+    dropzone.classList.add('active');
+    const cd = e.clipboardData || window.clipboardData;
+    if (!cd){
+      setStatus('clipboard data unavailable in this browser', 'err');
+      return;
+    }
+    const html = cd.getData('text/html');
+    const text = cd.getData('text/plain');
+
+    if (html && html.indexOf('data-tulip-clipboard') !== -1){
+      handleHtmlFragment(html);
+    } else if (html) {
+      setStatus('HTML clipboard data found, but no Tulip trigger/widget payload in it', 'err');
+      summaryEl.classList.remove('show');
+      showRawOnly(html);
+    } else if (text) {
+      setStatus('no HTML clipboard data — this doesn\'t look like a Tulip copy (plain text only)', 'err');
+      showRawOnly(text);
+    } else {
+      setStatus('clipboard appears empty', 'err');
+    }
+  });
+
+  dropzone.addEventListener('focus', function(){ dropzone.classList.add('active'); });
+  dropzone.addEventListener('blur', function(){ dropzone.classList.remove('active'); });
+  dropzone.addEventListener('click', function(){ dropzone.focus(); });
+
+  copyBtn.addEventListener('click', function(){
+    if (!lastJsonText) return;
+    navigator.clipboard.writeText(lastJsonText).then(function(){
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = 'copied';
+      setTimeout(function(){ copyBtn.textContent = orig; }, 1200);
+    });
+  });
+
+  // Rebuilds the same data-tulip-clipboard HTML structure Tulip itself writes
+  // (confirmed by decoding real copies earlier in this project) and writes it
+  // to the OS clipboard as text/html. The browser handles the OS-level
+  // clipboard-format wrapping (e.g. Windows CF_HTML byte offsets) itself when
+  // given a ClipboardItem — we don't need to compute those by hand, only the
+  // inner fragment, matching what our own decoder already knows how to read.
+  copyTulipBtn.addEventListener('click', function(){
+    if (!currentData) return;
+    if (!window.ClipboardItem){
+      setStatus('this browser does not support writing rich clipboard formats (no ClipboardItem) — use "copy json" and paste manually instead', 'err');
+      return;
+    }
+    try {
+      const jsonStr = JSON.stringify(currentData);
+      const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+      const html = '<html><head><meta charset="utf-8"><meta data-tulip-clipboard="' + b64 + '"></head><body></body></html>';
+      const htmlBlob = new Blob([html], { type: 'text/html' });
+      const textBlob = new Blob([jsonStr], { type: 'text/plain' });
+      const item = new window.ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob });
+      navigator.clipboard.write([item]).then(function(){
+        const orig = copyTulipBtn.textContent;
+        copyTulipBtn.textContent = 'copied — paste into Tulip';
+        setTimeout(function(){ copyTulipBtn.textContent = orig; }, 1800);
+      }).catch(function(e){
+        if (/permissions policy/i.test(e.message)){
+          setStatus('rich clipboard writes are blocked inside this preview sandbox — save this HTML file (from the chat, not the "download .json" button here) and open it directly in a normal browser tab, then this button will work there', 'err');
+        } else {
+          setStatus('clipboard write failed: ' + e.message, 'err');
+        }
+      });
+    } catch (e){
+      setStatus('could not build Tulip clipboard payload: ' + e.message, 'err');
+    }
+  });
+
+  downloadBtn.addEventListener('click', function(){
+    if (!lastJsonText) return;
+    const blob = new Blob([lastJsonText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tulip-trigger.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  clearBtn.addEventListener('click', reset);
+
+  dropzone.focus();
+})();
+</script>
+
+</body>
+</html>
