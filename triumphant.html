@@ -1,4 +1,34 @@
 <!DOCTYPE html>
+<!--
+  Triumphant — an unofficial companion for Tulip app developers.
+  Not affiliated with, endorsed by, or supported by Tulip Interfaces, Inc.
+  "Tulip" is a trademark of Tulip Interfaces, Inc.; used here only to
+  describe compatibility, not to claim any affiliation.
+
+  Source: https://github.com/apbrouss/triumphant
+
+  MIT License
+
+  Copyright (c) 2026 apbrouss
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -560,6 +590,21 @@
     line-height: 1.5;
   }
 
+  .license-footer{
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--panel-edge-soft);
+    font-size: 10.5px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .license-footer a{ color: var(--green); text-decoration: none; }
+  .license-footer a:hover{ text-decoration: underline; }
+  .disclaimer-emphasis{
+    color: var(--text);
+    font-weight: 600;
+  }
+
   /* widget-capture modal */
   .modal-backdrop{
     display: none;
@@ -838,6 +883,12 @@
         Action and condition types are mapped from a small known table (<code>store_in_var</code>, <code>array_get_at_index</code>, <code>is_false</code>, etc.) —
         unrecognized types fall back to a generic row so nothing is silently dropped. Expression strings (<code>exprStr</code>) are parsed from their internal AST;
         infix operators are best-effort, since only <code>+</code> has been confirmed against a real screenshot so far.
+      </div>
+
+      <div class="license-footer">
+        Triumphant v0.1.0 — MIT Licensed — provided as-is, no warranty.
+        <span class="disclaimer-emphasis">Unofficial, not affiliated with or endorsed by Tulip Interfaces, Inc.</span>
+        <a href="https://github.com/apbrouss/triumphant" target="_blank" rel="noopener">source &amp; license on GitHub</a>
       </div>
     </div>
   </div>
