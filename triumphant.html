@@ -33,7 +33,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Triumphant v0.1.0</title>
+<title>Triumphant v0.2.0</title>
 <style>
   :root{
     --bg: #080b12;
@@ -101,6 +101,13 @@
     letter-spacing: 0.02em;
   }
   .titlebar .path b{ color: var(--text); font-weight: 600; font-size: 13.5px; }
+  .title-icon{
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
+    margin-right: 5px;
+    fill: var(--text);
+  }
   .version-badge{
     font-size: 10px;
     font-weight: 600;
@@ -122,6 +129,33 @@
     line-height: 1.5;
   }
   .lede .prompt{ color: var(--green); }
+
+  .secure-context-note{
+    display: none;
+    font-size: 11px;
+  }
+  .secure-context-note.warn{
+    display: block;
+    margin-bottom: 14px;
+    background: rgba(232,180,100,0.08);
+    border: 1px solid rgba(232,180,100,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .secure-context-note.warn .sc-title{
+    color: var(--amber);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .secure-context-note code{
+    background: #06080f;
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--text);
+  }
 
   .dropzone{
     position: relative;
@@ -182,6 +216,48 @@
   .summary.show{ display:flex; }
   .summary .chip{ color: var(--text); }
   .summary .chip b{ color: var(--amber); font-weight:600; }
+
+  .clip-diagnostic{
+    display: none;
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(232,180,100,0.06);
+    border: 1px solid rgba(232,180,100,0.25);
+    border-radius: 8px;
+    font-size: 11.5px;
+    line-height: 1.6;
+  }
+  .clip-diagnostic.show{ display: block; }
+  .clip-diagnostic-title{
+    color: var(--amber);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .clip-diagnostic-row{ color: var(--text-dim); margin-bottom: 3px; }
+  .clip-diagnostic-row b{ color: var(--text); font-weight: 600; }
+  .clip-diagnostic-preview{
+    display: block;
+    margin: 2px 0 6px 14px;
+    padding: 4px 8px;
+    background: #06080f;
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 4px;
+    color: var(--text-dim);
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+  .clip-diagnostic-copy{
+    font-family: var(--font);
+    font-size: 10.5px;
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid rgba(232,180,100,0.4);
+    border-radius: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .clip-diagnostic-copy:hover{ background: rgba(232,180,100,0.12); }
 
   .toolbar{
     display:none;
@@ -834,7 +910,7 @@
 
   <div class="crt">
     <div class="titlebar">
-      <span class="path"><b>Triumphant</b> <span class="version-badge">v0.1.0</span> — reads data-tulip-clipboard payloads</span>
+      <span class="path"><svg class="title-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M360-120v-200q-62-5-121.5-14T120-360l20-80q83 23 168 31.5t172 8.5q86 0 171-8.5T820-440l20 80q-60 17-119.5 26T600-320v200H360Zm120-320q-34 0-57-23t-23-57q0-33 23-56.5t57-23.5q33 0 56.5 23.5T560-520q0 34-23.5 57T480-440ZM180-560q-26 0-43-17t-17-43q0-25 17-42.5t43-17.5q25 0 42.5 17.5T240-620q0 26-17.5 43T180-560Zm600 0q-26 0-43-17t-17-43q0-25 17-42.5t43-17.5q25 0 42.5 17.5T840-620q0 26-17.5 43T780-560ZM290-710q-26 0-43-17t-17-43q0-25 17-42.5t43-17.5q25 0 42.5 17.5T350-770q0 26-17.5 43T290-710Zm380 0q-26 0-43-17t-17-43q0-25 17-42.5t43-17.5q25 0 42.5 17.5T730-770q0 26-17.5 43T670-710Zm-190-50q-26 0-43-17t-17-43q0-25 17-42.5t43-17.5q25 0 42.5 17.5T540-820q0 26-17.5 43T480-760Z"/></svg><b>Triumphant</b> <span class="version-badge">v0.2.0</span> — reads data-tulip-clipboard payloads</span>
       <span class="titlebar-target" id="titlebarTarget"></span>
     </div>
 
@@ -844,6 +920,8 @@
         <span class="prompt">$</span> nothing leaves this page — decoding happens entirely in your browser.
       </p>
 
+      <div class="secure-context-note" id="secureContextNote"></div>
+
       <div class="dropzone" id="dropzone" tabindex="0">
         <div class="kbd">Ctrl+V<span class="cursor-blink"></span></div>
         <div class="hint">click here, then paste</div>
@@ -851,6 +929,7 @@
 
       <div class="status" id="status"></div>
       <div class="summary" id="summary"></div>
+      <div class="clip-diagnostic" id="clipDiagnostic"></div>
 
       <div class="toolbar" id="toolbar">
         <div class="tabs" id="tabs">
@@ -886,7 +965,7 @@
       </div>
 
       <div class="license-footer">
-        Triumphant v0.1.0 — MIT Licensed — provided as-is, no warranty.
+        Triumphant v0.2.0 — MIT Licensed — provided as-is, no warranty.
         <span class="disclaimer-emphasis">Unofficial, not affiliated with or endorsed by Tulip Interfaces, Inc.</span>
         <a href="https://github.com/apbrouss/triumphant" target="_blank" rel="noopener">source &amp; license on GitHub</a>
       </div>
@@ -1434,6 +1513,7 @@ if (typeof module !== 'undefined'){
   const dropzone = document.getElementById('dropzone');
   const statusEl = document.getElementById('status');
   const summaryEl = document.getElementById('summary');
+  const clipDiagnostic = document.getElementById('clipDiagnostic');
   const toolbar = document.getElementById('toolbar');
   const output = document.getElementById('output');
   const lowcodeOutput = document.getElementById('lowcodeOutput');
@@ -1604,6 +1684,74 @@ if (typeof module !== 'undefined'){
   function setStatus(msg, cls){
     statusEl.textContent = msg;
     statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  // Shows exactly what the browser reports being on the clipboard, for
+  // self-serve troubleshooting when a paste doesn't decode as expected.
+  // Distinguishes "nothing there" from "something's there but not what we
+  // expect" — e.g. if text/html is entirely missing, that points at the
+  // copy side (likely Tulip itself, or something intercepting it) rather
+  // than anything this tool is doing.
+  function renderClipDiagnostic(cd, html, text){
+    let types = [];
+    try { types = cd.types ? Array.from(cd.types) : []; } catch (e){ types = []; }
+
+    clipDiagnostic.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'clip-diagnostic-title';
+    title.textContent = 'Clipboard diagnostic (useful for troubleshooting — copy or screenshot this)';
+    clipDiagnostic.appendChild(title);
+
+    const typesRow = document.createElement('div');
+    typesRow.className = 'clip-diagnostic-row';
+    typesRow.innerHTML = '<b>MIME types found:</b> ' + (types.length ? esc(types.join(', ')) : '(none — browser reports nothing on the clipboard)');
+    clipDiagnostic.appendChild(typesRow);
+
+    function previewRow(label, value){
+      const row = document.createElement('div');
+      row.className = 'clip-diagnostic-row';
+      if (!value){
+        row.innerHTML = '<b>' + esc(label) + ':</b> (empty or not readable)';
+        clipDiagnostic.appendChild(row);
+        return;
+      }
+      row.innerHTML = '<b>' + esc(label) + ' (' + value.length + ' chars):</b>';
+      clipDiagnostic.appendChild(row);
+      const pre = document.createElement('span');
+      pre.className = 'clip-diagnostic-preview';
+      pre.textContent = value.length > 400 ? value.slice(0, 400) + '…' : value;
+      clipDiagnostic.appendChild(pre);
+    }
+    previewRow('text/html', html);
+    previewRow('text/plain', text);
+
+    const diagCopyBtn = document.createElement('button');
+    diagCopyBtn.type = 'button';
+    diagCopyBtn.className = 'clip-diagnostic-copy';
+    diagCopyBtn.textContent = 'copy this diagnostic as text';
+    if (!window.isSecureContext){
+      diagCopyBtn.disabled = true;
+      diagCopyBtn.title = 'requires a secure context (https/localhost) — see the note near the top of the page';
+    }
+    diagCopyBtn.addEventListener('click', function(){
+      const summary = 'Triumphant clipboard diagnostic\n' +
+        'MIME types found: ' + (types.length ? types.join(', ') : '(none)') + '\n' +
+        'text/html (' + (html ? html.length : 0) + ' chars): ' + (html ? html.slice(0, 1000) : '(empty)') + '\n' +
+        'text/plain (' + (text ? text.length : 0) + ' chars): ' + (text ? text.slice(0, 1000) : '(empty)');
+      navigator.clipboard.writeText(summary).then(function(){
+        const orig = diagCopyBtn.textContent;
+        diagCopyBtn.textContent = 'copied';
+        setTimeout(function(){ diagCopyBtn.textContent = orig; }, 1200);
+      });
+    });
+    clipDiagnostic.appendChild(diagCopyBtn);
+
+    clipDiagnostic.classList.add('show');
+  }
+
+  function hideClipDiagnostic(){
+    clipDiagnostic.classList.remove('show');
+    clipDiagnostic.innerHTML = '';
   }
 
   function decodeEntities(str){
@@ -2755,6 +2903,7 @@ if (typeof module !== 'undefined'){
     toolbar.classList.remove('show');
     summaryEl.classList.remove('show');
     summaryEl.innerHTML = '';
+    hideClipDiagnostic();
     output.innerHTML = '';
     lowcodeOutput.innerHTML = '';
     lastJsonText = '';
@@ -2813,16 +2962,20 @@ if (typeof module !== 'undefined'){
     const text = cd.getData('text/plain');
 
     if (html && html.indexOf('data-tulip-clipboard') !== -1){
+      hideClipDiagnostic();
       handleHtmlFragment(html);
     } else if (html) {
       setStatus('HTML clipboard data found, but no Tulip trigger/widget payload in it', 'err');
       summaryEl.classList.remove('show');
       showRawOnly(html);
+      renderClipDiagnostic(cd, html, text);
     } else if (text) {
       setStatus('no HTML clipboard data — this doesn\'t look like a Tulip copy (plain text only)', 'err');
       showRawOnly(text);
+      renderClipDiagnostic(cd, html, text);
     } else {
       setStatus('clipboard appears empty', 'err');
+      renderClipDiagnostic(cd, html, text);
     }
   });
 
@@ -2886,6 +3039,29 @@ if (typeof module !== 'undefined'){
   });
 
   clearBtn.addEventListener('click', reset);
+
+  // ---- secure-context compatibility check ----
+  // Reading pastes (the core paste-event flow) works regardless of secure
+  // context — only the modern navigator.clipboard.write()/writeText() calls
+  // (the three "copy" buttons) require it. Checked once at load since it
+  // doesn't change during a session. Only shown when there's actually a
+  // problem — no space taken up when everything's fine.
+  const isSecure = window.isSecureContext;
+  const secureContextNote = document.getElementById('secureContextNote');
+
+  if (!isSecure){
+    secureContextNote.className = 'secure-context-note warn';
+    secureContextNote.innerHTML =
+      '<div class="sc-title">⚠ not running in a secure context</div>' +
+      'Pasting a trigger in will still work fine — but the <code>copy json</code>, <code>copy for tulip paste</code>, and diagnostic copy ' +
+      'buttons are disabled below, since they need a secure (HTTPS, or localhost) origin to write to your clipboard. ' +
+      'This is usually fixed just by loading this page from a proper <code>https://</code> URL instead of however it was opened — ' +
+      'if that doesn\'t resolve it, it\'s likely a network/security policy on this machine worth checking with IT about.';
+    [copyBtn, copyTulipBtn].forEach(function(btn){
+      btn.disabled = true;
+      btn.title = 'requires a secure context (https/localhost) — see the note above';
+    });
+  }
 
   dropzone.focus();
 })();
