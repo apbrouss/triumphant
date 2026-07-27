@@ -1692,6 +1692,10 @@ if (typeof module !== 'undefined'){
   // expect" — e.g. if text/html is entirely missing, that points at the
   // copy side (likely Tulip itself, or something intercepting it) rather
   // than anything this tool is doing.
+  function isLikelyBinaryType(type){
+    return type === 'Files' || /^image\//i.test(type) || /^application\/octet-stream/i.test(type) || /^application\/pdf/i.test(type);
+  }
+
   function renderClipDiagnostic(cd, html, text){
     let types = [];
     try { types = cd.types ? Array.from(cd.types) : []; } catch (e){ types = []; }
@@ -1719,11 +1723,35 @@ if (typeof module !== 'undefined'){
       clipDiagnostic.appendChild(row);
       const pre = document.createElement('span');
       pre.className = 'clip-diagnostic-preview';
-      pre.textContent = value.length > 400 ? value.slice(0, 400) + '…' : value;
+      pre.textContent = value.length > 1200 ? value.slice(0, 1200) + '…' : value;
       clipDiagnostic.appendChild(pre);
     }
-    previewRow('text/html', html);
-    previewRow('text/plain', text);
+
+    // Preview every type reported, not just text/html and text/plain — this
+    // is what actually caught application/x.tulip.clipboard.*+json in the
+    // wild, a format we'd never seen before and weren't reading at all.
+    const previews = [];
+    if (types.length){
+      types.forEach(function(type){
+        if (isLikelyBinaryType(type)){
+          const row = document.createElement('div');
+          row.className = 'clip-diagnostic-row';
+          row.innerHTML = '<b>' + esc(type) + ':</b> (binary — not previewable as text here, presence confirmed only)';
+          clipDiagnostic.appendChild(row);
+          previews.push({ type: type, value: '(binary, not previewed)' });
+          return;
+        }
+        let value = '';
+        try { value = cd.getData(type); } catch (e){ value = ''; }
+        previewRow(type, value);
+        previews.push({ type: type, value: value });
+      });
+    } else {
+      // fallback for browsers that don't expose cd.types at all
+      previewRow('text/html', html);
+      previewRow('text/plain', text);
+      previews.push({ type: 'text/html', value: html }, { type: 'text/plain', value: text });
+    }
 
     const diagCopyBtn = document.createElement('button');
     diagCopyBtn.type = 'button';
@@ -1734,10 +1762,11 @@ if (typeof module !== 'undefined'){
       diagCopyBtn.title = 'requires a secure context (https/localhost) — see the note near the top of the page';
     }
     diagCopyBtn.addEventListener('click', function(){
-      const summary = 'Triumphant clipboard diagnostic\n' +
-        'MIME types found: ' + (types.length ? types.join(', ') : '(none)') + '\n' +
-        'text/html (' + (html ? html.length : 0) + ' chars): ' + (html ? html.slice(0, 1000) : '(empty)') + '\n' +
-        'text/plain (' + (text ? text.length : 0) + ' chars): ' + (text ? text.slice(0, 1000) : '(empty)');
+      const lines = ['Triumphant clipboard diagnostic', 'MIME types found: ' + (types.length ? types.join(', ') : '(none)')];
+      previews.forEach(function(p){
+        lines.push(p.type + ' (' + (p.value ? p.value.length : 0) + ' chars): ' + (p.value ? p.value.slice(0, 2000) : '(empty)'));
+      });
+      const summary = lines.join('\n');
       navigator.clipboard.writeText(summary).then(function(){
         const orig = diagCopyBtn.textContent;
         diagCopyBtn.textContent = 'copied';
