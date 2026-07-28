@@ -42,6 +42,7 @@
     --panel-edge-soft: #283552;
     --green: #3d8adc;
     --green-dim: #234d7a;
+    --success: #3ddc84;
     --text: #cfe0e8;
     --text-dim: #6f838f;
     --amber: #e8b464;
@@ -157,33 +158,32 @@
     color: var(--text);
   }
 
-  .dropzone{
+  #wfStep1{
     position: relative;
-    border: 1px dashed var(--panel-edge);
-    border-radius: 8px;
-    min-height: 110px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap: 10px;
-    padding: 20px;
-    background: repeating-linear-gradient(0deg, rgba(61,138,220,0.015) 0px, rgba(61,138,220,0.015) 1px, transparent 1px, transparent 3px);
     outline: none;
-    transition: border-color 0.15s ease, background 0.15s ease;
     cursor: text;
+    background-image: repeating-linear-gradient(0deg, rgba(61,138,220,0.015) 0px, rgba(61,138,220,0.015) 1px, transparent 1px, transparent 3px);
   }
-  .dropzone:focus, .dropzone.active{
-    border-color: var(--green-dim);
-    background: rgba(61,138,220,0.04);
+  #wfStep1:focus, #wfStep1.active{
+    border-color: var(--green);
+    background-color: rgba(61,138,220,0.13);
+    box-shadow: 0 0 0 3px rgba(61,138,220,0.3), inset 0 0 0 1px rgba(61,138,220,0.4);
   }
-  .dropzone .kbd{
-    font-size: 20px;
+  .wf-step1-body{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  #wfStep1 .kbd{
+    font-size: 17px;
     color: var(--green);
     letter-spacing: 0.05em;
   }
-  .dropzone .hint{
-    font-size: 12px;
+  #wfStep1 .hint{
+    font-size: 10.5px;
     color: var(--text-dim);
   }
   .cursor-blink{
@@ -191,9 +191,12 @@
     width: 8px; height: 16px;
     background: var(--green);
     vertical-align: -3px;
+    opacity: 0;
+  }
+  #wfStep1:focus .cursor-blink, #wfStep1.active .cursor-blink{
     animation: blink 1s steps(1) infinite;
   }
-  @keyframes blink{ 50%{ opacity:0; } }
+  @keyframes blink{ 0%, 50%{ opacity:1; } 50.01%, 100%{ opacity:0; } }
 
   .status{
     margin-top: 14px;
@@ -216,6 +219,142 @@
   .summary.show{ display:flex; }
   .summary .chip{ color: var(--text); }
   .summary .chip b{ color: var(--amber); font-weight:600; }
+
+  /* numbered workflow steps */
+  .workflow-steps{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    align-items: stretch;
+  }
+  .wf-step{
+    border: 1px solid var(--panel-edge);
+    border-radius: 8px;
+    background: #0a0e18;
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .wf-step-header{
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 9px;
+    transition: color 0.2s ease;
+  }
+  .wf-step-num{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--panel-edge-soft);
+    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .wf-step[data-state="active"]{
+    border-color: var(--green);
+    background: rgba(61,138,220,0.07);
+  }
+  .wf-step[data-state="active"] .wf-step-header{ color: var(--text); }
+  .wf-step[data-state="active"] .wf-step-num{ background: var(--green); color: #05070f; }
+
+  .wf-step[data-state="complete"] .wf-step-header{ color: var(--text-dim); }
+  .wf-step[data-state="complete"] .wf-step-num{
+    background: transparent;
+    border: 1.5px solid var(--success);
+    color: var(--success);
+  }
+
+  /* step 2: status/summary tightened for the narrower column, plus the
+     down-arrow hint linking visually to the editor panel below */
+  .wf-step2-body{ flex: 1; display: flex; flex-direction: column; }
+  .wf-step2-body .status{ margin-top: 0; font-size: 11.5px; }
+  .wf-step2-body .summary{ flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; }
+  .wf-step2-arrow{
+    margin-top: auto;
+    padding-top: 10px;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    opacity: 0.75;
+    text-align: center;
+  }
+  .wf-step[data-state="active"] .wf-step2-arrow{ color: var(--green); opacity: 1; }
+
+  /* step 3: the button itself is the box */
+  .wf-step3{ padding: 0; overflow: hidden; }
+  .wf-step3-btn{
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 10px 12px 12px;
+    font-family: var(--font);
+    text-align: left;
+  }
+  .wf-step3-btn:disabled{ cursor: not-allowed; }
+  .wf-step3-btn .wf-step-header{ margin-bottom: 0; }
+  .wf-step3-body{
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 8px;
+  }
+  .wf-step3-label{
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .wf-step3[data-state="available"] .wf-step3-label{ color: var(--green); }
+  .wf-step3[data-state="available"] .wf-step-header{ color: var(--text); }
+  .wf-step3[data-state="available"] .wf-step-num{ background: var(--green); color: #05070f; }
+  .wf-step3[data-state="available"]:hover{ background: rgba(61,138,220,0.1); }
+
+  .wf-step3[data-state="complete"]{
+    border-color: var(--green);
+    background: var(--green);
+  }
+  .wf-step3[data-state="complete"] .wf-step-header{ color: #05070f; }
+  .wf-step3[data-state="complete"] .wf-step3-label{ color: #05070f; font-weight: 700; }
+  .wf-step3[data-state="complete"] .wf-step-num{ background: #05070f; color: var(--success); }
+  .wf-step3[data-state="complete"]:hover{ background: var(--green); opacity: 0.92; }
+
+  /* clear button, relocated into step 2's header */
+  .wf-step-clear{
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: transparent;
+    border: 1px solid var(--panel-edge-soft);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: var(--font);
+    font-size: 10px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .wf-step-clear:hover{ color: var(--red); border-color: rgba(255,95,86,0.4); }
+  .wf-step-clear:disabled{ opacity: 0.35; cursor: not-allowed; }
+  .wf-step-clear:disabled:hover{ color: var(--text-dim); border-color: var(--panel-edge-soft); }
+  .wf-step-clear svg{ width: 11px; height: 11px; fill: currentColor; }
 
   .clip-diagnostic{
     display: none;
@@ -262,14 +401,22 @@
   .toolbar{
     display:none;
     align-items:center;
-    justify-content: space-between;
+    justify-content: flex-start;
     margin-top: 18px;
     margin-bottom: 8px;
-    gap: 12px;
+    gap: 14px;
     flex-wrap: wrap;
   }
   .toolbar.show{ display:flex; }
 
+  .mode-group{ display:flex; align-items:center; gap: 8px; }
+  .mode-label{
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
   .tabs{ display:flex; gap:4px; background:#0d130c; border:1px solid var(--panel-edge); border-radius:6px; padding:3px; }
   .tab{
     font-family: var(--font);
@@ -285,7 +432,21 @@
   .tab.active{ background: var(--green-dim); color: #eaf4ff; }
   .tab:disabled{ opacity: 0.35; cursor: not-allowed; }
 
+  .json-actions{
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: #0d130c;
+    border: 1px solid var(--panel-edge);
+    border-radius: 6px;
+    padding: 4px 6px;
+  }
+  .json-actions.show{ display: flex; }
+
   .toolbar button.actionbtn{
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-family: var(--font);
     font-size: 12px;
     background: transparent;
@@ -296,10 +457,11 @@
     cursor: pointer;
     transition: color 0.15s ease, border-color 0.15s ease;
   }
+  .toolbar button.actionbtn svg{ width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
   .toolbar button.actionbtn:hover{ color: var(--green); border-color: var(--green-dim); }
+  .toolbar button.actionbtn:disabled{ opacity: 0.35; cursor: not-allowed; }
   .toolbar button.actionbtn-primary{ color: var(--green); border-color: var(--green-dim); }
   .toolbar button.actionbtn-primary:hover{ background: rgba(61,138,220,0.1); }
-  .toolbar .btns{ display:flex; gap:8px; }
 
   pre#output{
     display:none;
@@ -317,8 +479,7 @@
   }
   pre#output.show{ display:block; }
 
-  .tab-edit{ margin-left: auto; }
-  .tab-edit.active{ background: rgba(232,180,100,0.2); color: var(--amber); }
+  .json-actions .tab-edit.active{ background: rgba(232,180,100,0.15); border-color: rgba(232,180,100,0.4); color: var(--amber); }
 
   .raw-edit-wrap{ display: none; }
   .raw-edit-wrap.show{ display: block; }
@@ -916,32 +1077,65 @@
 
     <div class="body">
       <p class="lede">
-        <span class="prompt">$</span> copy a trigger, widget, or step in the Tulip app editor, then click below and paste.<br>
         <span class="prompt">$</span> nothing leaves this page — decoding happens entirely in your browser.
       </p>
 
       <div class="secure-context-note" id="secureContextNote"></div>
 
-      <div class="dropzone" id="dropzone" tabindex="0">
-        <div class="kbd">Ctrl+V<span class="cursor-blink"></span></div>
-        <div class="hint">click here, then paste</div>
+      <div class="workflow-steps">
+        <div class="wf-step" id="wfStep1" data-state="active" tabindex="0">
+          <div class="wf-step-header"><span class="wf-step-num">1</span> Paste from Tulip</div>
+          <div class="wf-step1-body">
+            <div class="kbd">Ctrl+V<span class="cursor-blink"></span></div>
+            <div class="hint">click here, then paste</div>
+          </div>
+        </div>
+
+        <div class="wf-step" id="wfStep2" data-state="pending">
+          <div class="wf-step-header">
+            <span class="wf-step-num">2</span> Edit
+            <button class="wf-step-clear" id="clearBtn" title="clear and start over" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              clear
+            </button>
+          </div>
+          <div class="wf-step2-body">
+            <div class="status" id="status"></div>
+            <div class="summary" id="summary"></div>
+            <div class="wf-step2-arrow">↓ make your edits in the panel below</div>
+          </div>
+        </div>
+
+        <div class="wf-step wf-step3" id="wfStep3" data-state="pending">
+          <button class="wf-step3-btn" id="copyTulipBtn" disabled>
+            <span class="wf-step-header"><span class="wf-step-num">3</span> Copy &gt;&gt; Tulip</span>
+            <span class="wf-step3-body">
+              <span class="wf-step3-label">Copy for Tulip Paste</span>
+            </span>
+          </button>
+        </div>
       </div>
 
-      <div class="status" id="status"></div>
-      <div class="summary" id="summary"></div>
       <div class="clip-diagnostic" id="clipDiagnostic"></div>
 
       <div class="toolbar" id="toolbar">
-        <div class="tabs" id="tabs">
-          <button class="tab active" id="tabLowcode" data-tab="lowcode">low-code</button>
-          <button class="tab" id="tabRaw" data-tab="raw">raw json</button>
-          <button class="tab tab-edit" id="rawEditToggle">✎ enable raw edit</button>
+        <div class="mode-group">
+          <span class="mode-label">Mode</span>
+          <div class="tabs" id="tabs">
+            <button class="tab active" id="tabLowcode" data-tab="lowcode">low-code</button>
+            <button class="tab" id="tabRaw" data-tab="raw">json</button>
+          </div>
         </div>
-        <div class="btns">
-          <button class="actionbtn" id="copyBtn">copy json</button>
-          <button class="actionbtn actionbtn-primary" id="copyTulipBtn">copy for tulip paste</button>
-          <button class="actionbtn" id="downloadBtn">download .json</button>
-          <button class="actionbtn" id="clearBtn">clear</button>
+        <div class="json-actions" id="jsonActions">
+          <button class="actionbtn tab-edit" id="rawEditToggle">✎ edit</button>
+          <button class="actionbtn" id="copyBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            <span class="btn-label">copy</span>
+          </button>
+          <button class="actionbtn" id="downloadBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            download
+          </button>
         </div>
       </div>
 
@@ -1510,9 +1704,72 @@ if (typeof module !== 'undefined'){
 
 // ===== end code-mode core =====
 (function(){
-  const dropzone = document.getElementById('dropzone');
+  const wfStep1 = document.getElementById('wfStep1');
+  const dropzone = wfStep1; // the whole step-1 box is the paste/click target now
   const statusEl = document.getElementById('status');
   const summaryEl = document.getElementById('summary');
+  const wfStep2 = document.getElementById('wfStep2');
+  const wfStep3 = document.getElementById('wfStep3');
+
+  // Workflow step state: reset on fresh decode, flipped by any edit, and by
+  // a successful "copy for tulip paste". secureContextOk is computed once
+  // below (session-static); the other two change throughout the session.
+  let hasEditedSinceDecode = false;
+  let hasCopiedSinceLastEdit = false;
+  let secureContextOk = true; // real value set once secure-context check runs, below
+
+  function updateWorkflowSteps(){
+    function setStep(el, state){
+      el.dataset.state = state;
+      const numEl = el.querySelector('.wf-step-num');
+      if (numEl) numEl.textContent = (state === 'complete') ? '✓' : (el === wfStep1 ? '1' : el === wfStep2 ? '2' : '3');
+    }
+    const step3Label = wfStep3.querySelector('.wf-step3-label');
+    clearBtn.disabled = !currentData;
+
+    if (!currentData){
+      setStep(wfStep1, 'active');
+      setStep(wfStep2, 'pending');
+      setStep(wfStep3, 'pending');
+      step3Label.textContent = 'Copy for Tulip Paste';
+      copyTulipBtn.disabled = true;
+      copyTulipBtn.title = 'paste something first';
+      return;
+    }
+
+    setStep(wfStep1, 'complete');
+
+    if (!hasEditedSinceDecode){
+      setStep(wfStep2, 'active');
+      setStep(wfStep3, 'pending');
+      step3Label.textContent = 'Copy for Tulip Paste';
+      copyTulipBtn.disabled = true;
+      copyTulipBtn.title = 'make an edit first — nothing to copy back yet';
+    } else if (!hasCopiedSinceLastEdit){
+      setStep(wfStep2, 'active');
+      setStep(wfStep3, 'available');
+      step3Label.textContent = 'Copy for Tulip Paste';
+      copyTulipBtn.disabled = !secureContextOk;
+      copyTulipBtn.title = secureContextOk ? '' : 'requires a secure context (https/localhost) — see the note above';
+    } else {
+      setStep(wfStep2, 'complete');
+      setStep(wfStep3, 'complete');
+      step3Label.textContent = 'Copied — ready to paste into Tulip';
+      copyTulipBtn.disabled = !secureContextOk;
+      copyTulipBtn.title = secureContextOk ? '' : 'requires a secure context (https/localhost) — see the note above';
+    }
+  }
+
+  function markEdited(){
+    hasEditedSinceDecode = true;
+    hasCopiedSinceLastEdit = false;
+    updateWorkflowSteps();
+  }
+
+  function markCopied(){
+    hasCopiedSinceLastEdit = true;
+    updateWorkflowSteps();
+  }
   const clipDiagnostic = document.getElementById('clipDiagnostic');
   const toolbar = document.getElementById('toolbar');
   const output = document.getElementById('output');
@@ -1523,6 +1780,7 @@ if (typeof module !== 'undefined'){
   const clearBtn = document.getElementById('clearBtn');
   const tabLowcode = document.getElementById('tabLowcode');
   const tabRaw = document.getElementById('tabRaw');
+  const jsonActions = document.getElementById('jsonActions');
   const rawEditToggle = document.getElementById('rawEditToggle');
   const rawEditWrap = document.getElementById('rawEditWrap');
   const rawEditArea = document.getElementById('rawEditArea');
@@ -1675,6 +1933,7 @@ if (typeof module !== 'undefined'){
       });
     }
     renderTitlebarTarget();
+    if (currentData) markEdited();
     refreshView();
   }
 
@@ -2742,7 +3001,7 @@ if (typeof module !== 'undefined'){
       data: data,
       nameById: nameById,
       nameToId: nameToId,
-      afterEdit: refreshView
+      afterEdit: function(){ markEdited(); refreshView(); }
     };
 
     if (!triggers.length && !widgets.length){
@@ -2792,10 +3051,12 @@ if (typeof module !== 'undefined'){
       rawEditWrap.classList.remove('show');
       tabLowcode.classList.add('active');
       tabRaw.classList.remove('active');
+      jsonActions.classList.remove('show');
     } else {
       lowcodeOutput.classList.remove('show');
       tabRaw.classList.add('active');
       tabLowcode.classList.remove('active');
+      jsonActions.classList.add('show');
       if (rawEditActive){
         output.classList.remove('show');
         rawEditWrap.classList.add('show');
@@ -2847,7 +3108,7 @@ if (typeof module !== 'undefined'){
   // was working before.
   function exitRawEditMode(restoreLowcodeTab){
     rawEditActive = false;
-    rawEditToggle.textContent = '✎ enable raw edit';
+    rawEditToggle.textContent = '✎ edit';
     rawEditToggle.classList.remove('active');
     rawEditStatus.textContent = '';
     rawEditStatus.className = 'raw-edit-status';
@@ -2868,6 +3129,7 @@ if (typeof module !== 'undefined'){
     const pretty = JSON.stringify(parsed, null, 2);
     lastJsonText = pretty;
     output.innerHTML = syntaxHighlight(pretty);
+    markEdited();
 
     let lowcodeOk = true;
     try {
@@ -2903,6 +3165,8 @@ if (typeof module !== 'undefined'){
   }
 
   function showDecoded(dataObj, prettyText){
+    hasEditedSinceDecode = false;
+    hasCopiedSinceLastEdit = false;
     lastJsonText = prettyText;
     output.innerHTML = syntaxHighlight(prettyText);
     toolbar.classList.add('show');
@@ -2915,12 +3179,13 @@ if (typeof module !== 'undefined'){
       switchTab('raw');
       setStatus('decoded, but low-code rendering hit an error: ' + e.message, 'err');
     }
+    updateWorkflowSteps();
   }
 
   function reset(){
     if (rawEditActive){
       rawEditActive = false;
-      rawEditToggle.textContent = '✎ enable raw edit';
+      rawEditToggle.textContent = '✎ edit';
       rawEditToggle.classList.remove('active');
       rawEditStatus.textContent = '';
       rawEditStatus.className = 'raw-edit-status';
@@ -2936,7 +3201,12 @@ if (typeof module !== 'undefined'){
     output.innerHTML = '';
     lowcodeOutput.innerHTML = '';
     lastJsonText = '';
+    currentData = null;
+    hasEditedSinceDecode = false;
+    hasCopiedSinceLastEdit = false;
     setStatus('');
+    updateWorkflowSteps();
+    dropzone.focus();
   }
 
   function applyPersistedTargetOnDecode(data){
@@ -2955,7 +3225,7 @@ if (typeof module !== 'undefined'){
   function handleHtmlFragment(html){
     if (rawEditActive){
       rawEditActive = false;
-      rawEditToggle.textContent = '✎ enable raw edit';
+      rawEditToggle.textContent = '✎ edit';
       rawEditToggle.classList.remove('active');
     }
     const match = html.match(/data-tulip-clipboard="([^"]+)"/);
@@ -2993,6 +3263,7 @@ if (typeof module !== 'undefined'){
     if (html && html.indexOf('data-tulip-clipboard') !== -1){
       hideClipDiagnostic();
       handleHtmlFragment(html);
+      dropzone.blur(); // real blur — currentData is set by now, so the blur handler will correctly deactivate
     } else if (html) {
       setStatus('HTML clipboard data found, but no Tulip trigger/widget payload in it', 'err');
       summaryEl.classList.remove('show');
@@ -3009,15 +3280,19 @@ if (typeof module !== 'undefined'){
   });
 
   dropzone.addEventListener('focus', function(){ dropzone.classList.add('active'); });
-  dropzone.addEventListener('blur', function(){ dropzone.classList.remove('active'); });
+  dropzone.addEventListener('blur', function(){
+    if (!currentData) return; // still on step 1 — stay visually active/ready even after clicking away
+    dropzone.classList.remove('active');
+  });
   dropzone.addEventListener('click', function(){ dropzone.focus(); });
 
   copyBtn.addEventListener('click', function(){
     if (!lastJsonText) return;
     navigator.clipboard.writeText(lastJsonText).then(function(){
-      const orig = copyBtn.textContent;
-      copyBtn.textContent = 'copied';
-      setTimeout(function(){ copyBtn.textContent = orig; }, 1200);
+      const label = copyBtn.querySelector('.btn-label');
+      const orig = label.textContent;
+      label.textContent = 'copied';
+      setTimeout(function(){ label.textContent = orig; }, 1200);
     });
   });
 
@@ -3041,9 +3316,7 @@ if (typeof module !== 'undefined'){
       const textBlob = new Blob([jsonStr], { type: 'text/plain' });
       const item = new window.ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob });
       navigator.clipboard.write([item]).then(function(){
-        const orig = copyTulipBtn.textContent;
-        copyTulipBtn.textContent = 'copied — paste into Tulip';
-        setTimeout(function(){ copyTulipBtn.textContent = orig; }, 1800);
+        markCopied();
       }).catch(function(e){
         if (/permissions policy/i.test(e.message)){
           setStatus('rich clipboard writes are blocked inside this preview sandbox — save this HTML file (from the chat, not the "download .json" button here) and open it directly in a normal browser tab, then this button will work there', 'err');
@@ -3075,10 +3348,10 @@ if (typeof module !== 'undefined'){
   // (the three "copy" buttons) require it. Checked once at load since it
   // doesn't change during a session. Only shown when there's actually a
   // problem — no space taken up when everything's fine.
-  const isSecure = window.isSecureContext;
+  secureContextOk = window.isSecureContext;
   const secureContextNote = document.getElementById('secureContextNote');
 
-  if (!isSecure){
+  if (!secureContextOk){
     secureContextNote.className = 'secure-context-note warn';
     secureContextNote.innerHTML =
       '<div class="sc-title">⚠ not running in a secure context</div>' +
@@ -3086,12 +3359,13 @@ if (typeof module !== 'undefined'){
       'buttons are disabled below, since they need a secure (HTTPS, or localhost) origin to write to your clipboard. ' +
       'This is usually fixed just by loading this page from a proper <code>https://</code> URL instead of however it was opened — ' +
       'if that doesn\'t resolve it, it\'s likely a network/security policy on this machine worth checking with IT about.';
-    [copyBtn, copyTulipBtn].forEach(function(btn){
-      btn.disabled = true;
-      btn.title = 'requires a secure context (https/localhost) — see the note above';
-    });
+    copyBtn.disabled = true;
+    copyBtn.title = 'requires a secure context (https/localhost) — see the note above';
+    // copyTulipBtn's disabled state is managed by updateWorkflowSteps, which
+    // already factors in secureContextOk alongside workflow progress.
   }
 
+  updateWorkflowSteps();
   dropzone.focus();
 })();
 </script>
